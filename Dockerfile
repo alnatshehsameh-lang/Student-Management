@@ -1,22 +1,10 @@
-# Build stage
-FROM cirrusci/flutter:stable AS build
-WORKDIR /app
-
-# Copy project files
-COPY pubspec.* ./
-RUN flutter pub get
-COPY . .
-
-# Build web
-RUN flutter build web --release
-
-# Serve stage
+# Serve pre-built Flutter web files
 FROM nginx:alpine
 
-# Copy compiled web output
-COPY --from=build /app/build/web /usr/share/nginx/html
+# Copy pre-built web files (must be built locally with: flutter build web --release)
+COPY build/web /usr/share/nginx/html
 
-# Copy custom nginx config
+# Copy custom nginx config for SPA routing
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
