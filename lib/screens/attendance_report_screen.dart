@@ -441,7 +441,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
     required Function(dynamic) onChanged,
   }) {
     return DropdownButtonFormField<dynamic>(
-      value: value,
+      initialValue: value,
       onChanged: onChanged,
       decoration: InputDecoration(
         labelText: label,
