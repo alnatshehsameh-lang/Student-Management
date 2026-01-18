@@ -296,19 +296,69 @@ class _StudentsScreenState extends State<StudentsScreen> {
 
   Future<void> _deleteRow(dynamic id) async {
     try {
-      await _client.from('Students').delete().eq('id', id);
-      _fetchStudents();
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Delete error: $e')));
+      debugPrint('DEBUG: Starting delete for student ID: $id');
+      debugPrint('DEBUG: User session: ${_client.auth.currentUser?.id}');
+      
+      final response = await _client.from('Students').delete().eq('id', id).select();
+      debugPrint('DEBUG: Delete response: $response');
+      
+      if (mounted) {
+        debugPrint('DEBUG: Widget mounted, clearing cache and refreshing');
+        // Clear cache to force fresh data fetch from server
+        setState(() {
+          _pageCache.clear();
+          _pageHasNext.clear();
+          _pageIndex = 0;
+        });
+        await _fetchStudents();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم حذف الطالب بنجاح')),
+        );
+      } else {
+        debugPrint('DEBUG: Widget not mounted after delete');
+      }
+    } catch (e, stackTrace) {
+      debugPrint('DEBUG: Delete error: $e');
+      debugPrint('DEBUG: Stack trace: $stackTrace');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('خطأ في الحذف: $e')),
+        );
+      }
     }
   }
 
   Future<void> _updateRow(dynamic id, Map<String, dynamic> changes) async {
     try {
-      await _client.from('Students').update(changes).eq('id', id);
-      _fetchStudents();
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Update error: $e')));
+      debugPrint('DEBUG: Starting update for student ID: $id with changes: $changes');
+      debugPrint('DEBUG: User session: ${_client.auth.currentUser?.id}');
+      
+      final response = await _client.from('Students').update(changes).eq('id', id).select();
+      debugPrint('DEBUG: Update response: $response');
+      
+      if (mounted) {
+        debugPrint('DEBUG: Widget mounted, clearing cache and refreshing');
+        // Clear cache to force fresh data fetch from server
+        setState(() {
+          _pageCache.clear();
+          _pageHasNext.clear();
+          _pageIndex = 0;
+        });
+        await _fetchStudents();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم تحديث الطالب بنجاح')),
+        );
+      } else {
+        debugPrint('DEBUG: Widget not mounted after update');
+      }
+    } catch (e, stackTrace) {
+      debugPrint('DEBUG: Update error: $e');
+      debugPrint('DEBUG: Stack trace: $stackTrace');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('خطأ في التحديث: $e')),
+        );
+      }
     }
   }
 
@@ -331,36 +381,194 @@ class _StudentsScreenState extends State<StudentsScreen> {
   }
 
   void _showEditDialog(Map<String, dynamic> row) {
-    final Map<String, TextEditingController> controllers = {};
-    row.forEach((k, v) => controllers[k] = TextEditingController(text: v?.toString() ?? ''));
+    debugPrint('DEBUG: _showEditDialog called for ID: ${row['id']}');
+    
+    try {
+      debugPrint('DEBUG: Creating controllers...');
+      final nameController = TextEditingController(text: (row['Student_Name'] ?? '').toString());
+      final mobileController = TextEditingController(text: (row['Mobile_No'] ?? '').toString());
+      final codeController = TextEditingController(text: (row['Student_Code'] ?? '').toString());
+      
+      dynamic selectedGroupId = row['Group_id'];
+      dynamic selectedTypeId = row['Type_id'];
+      
+      // Get current class number for display
+      String currentClassNumber = (row['Class_Number'] ?? '').toString();
+      
+      debugPrint('DEBUG: Controllers created successfully');
 
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('تعديل'),
-        content: SingleChildScrollView(
-          child: Column(
-            children: row.keys.map((k) {
-              return TextField(controller: controllers[k], decoration: InputDecoration(labelText: _prettifyColumn(k)));
-            }).toList(),
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
-          ElevatedButton(
-            onPressed: () {
-              final changes = <String, dynamic>{};
-              controllers.forEach((k, c) {
-                changes[k] = c.text;
-              });
-              Navigator.pop(context);
-              _updateRow(row['id'], changes);
+      debugPrint('DEBUG: Calling showDialog...');
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext dialogContext) {
+          debugPrint('DEBUG: Inside dialog builder');
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              // Filter classes based on selected group and type
+              
+              return AlertDialog(
+                title: const Text('تعديل بيانات الطالب'),
+                content: SizedBox(
+                  width: 400,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextField(
+                          controller: nameController,
+                          decoration: const InputDecoration(
+                            labelText: 'اسم الطالب',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: mobileController,
+                          decoration: const InputDecoration(
+                            labelText: 'رقم الجوال',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: codeController,
+                          decoration: const InputDecoration(
+                            labelText: 'كود الطالب',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        
+                        // Group dropdown
+                        if (_groupOptions.isNotEmpty)
+                          DropdownButtonFormField<dynamic>(
+                            initialValue: _groupOptions.contains(selectedGroupId) ? selectedGroupId : (_groupOptions.isNotEmpty ? _groupOptions.first : null),
+                            decoration: const InputDecoration(
+                              labelText: 'المجموعة',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: _groupOptions.map((g) {
+                              final display = _groupsMap[g] ?? g?.toString() ?? '';
+                              return DropdownMenuItem(value: g, child: Text(display));
+                            }).toList(),
+                            onChanged: (value) {
+                              setDialogState(() {
+                                selectedGroupId = value;
+                              });
+                            },
+                          ),
+                        const SizedBox(height: 12),
+                        
+                        // Class Number text field (user enters the number they want)
+                        TextField(
+                          controller: TextEditingController(text: currentClassNumber),
+                          decoration: const InputDecoration(
+                            labelText: 'رقم الحلقة',
+                            border: OutlineInputBorder(),
+                            hintText: 'أدخل رقم الحلقة',
+                          ),
+                          keyboardType: TextInputType.number,
+                          onChanged: (value) {
+                            currentClassNumber = value;
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        
+                        // Type dropdown
+                        if (_typeOptions.isNotEmpty)
+                          DropdownButtonFormField<dynamic>(
+                            initialValue: _typeOptions.contains(selectedTypeId) ? selectedTypeId : (_typeOptions.isNotEmpty ? _typeOptions.first : null),
+                            decoration: const InputDecoration(
+                              labelText: 'الرواية',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: _typeOptions.map((t) {
+                              final display = _typesMap[t] ?? t?.toString() ?? '';
+                              return DropdownMenuItem(value: t, child: Text(display));
+                            }).toList(),
+                            onChanged: (value) {
+                              setDialogState(() {
+                                selectedTypeId = value;
+                              });
+                            },
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      debugPrint('DEBUG: Cancel clicked');
+                      Navigator.of(dialogContext).pop();
+                    },
+                    child: const Text('إلغاء'),
+                  ),
+                  ElevatedButton(
+                    onPressed: () async {
+                      debugPrint('DEBUG: Save clicked');
+                      
+                      final changes = <String, dynamic>{
+                        'Student_Name': nameController.text.trim(),
+                        'Mobile_No': mobileController.text.trim(),
+                        'Student_Code': codeController.text.trim(),
+                      };
+                      
+                      if (selectedGroupId != null) changes['Group_id'] = selectedGroupId;
+                      if (selectedTypeId != null) changes['Type_id'] = selectedTypeId;
+                      
+                      // Find the Class_id based on Class_Number, Group_id, and Type_id
+                      if (currentClassNumber.isNotEmpty) {
+                        try {
+                          final classNumberInt = int.tryParse(currentClassNumber);
+                          if (classNumberInt != null && selectedGroupId != null && selectedTypeId != null) {
+                            debugPrint('DEBUG: Looking up Class_id for Class_Number=$classNumberInt, Group_id=$selectedGroupId, Type_id=$selectedTypeId');
+                            
+                            final classResult = await _client
+                                .from('Classes')
+                                .select('id')
+                                .eq('Class_Number', classNumberInt)
+                                .maybeSingle();
+                            
+                            if (classResult != null) {
+                              final foundClassId = classResult['id'];
+                              debugPrint('DEBUG: Found Class_id: $foundClassId');
+                              changes['Class_id'] = foundClassId;
+                            } else {
+                              debugPrint('DEBUG: No matching class found');
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('لم يتم العثور على حلقة برقم $classNumberInt')),
+                                );
+                                return;
+                              }
+                            }
+                          }
+                        } catch (e) {
+                          debugPrint('DEBUG: Error looking up Class_id: $e');
+                        }
+                      }
+                      
+                      Navigator.of(dialogContext).pop();
+                      debugPrint('DEBUG: Calling _updateRow...');
+                      _updateRow(row['id'], changes);
+                    },
+                    child: const Text('حفظ'),
+                  ),
+                ],
+              );
             },
-            child: const Text('حفظ'),
-          ),
-        ],
-      ),
-    );
+          );
+        },
+      ).then((_) {
+        debugPrint('DEBUG: Dialog closed');
+      });
+      debugPrint('DEBUG: showDialog call completed');
+    } catch (e, stack) {
+      debugPrint('DEBUG: Error in _showEditDialog: $e');
+      debugPrint('DEBUG: Stack: $stack');
+    }
   }
 
   void _showAddStudentDialog() {
@@ -914,26 +1122,32 @@ class StudentsTable extends StatelessWidget {
 
       // actions cell
       cells.add(DataCell(PopupMenuButton<String>(
-        onSelected: (v) async {
+        onSelected: (v) {
           if (v == 'view') {
             if (onView != null) onView!(row);
           } else if (v == 'edit') {
-            if (onEdit != null) onEdit!(row);
-          } else if (v == 'delete') {
-            final confirm = await showDialog<bool>(
-              context: _dummyContext, // replaced below
-              builder: (c) => AlertDialog(
-                title: const Text('حذف'),
-                content: const Text('هل تريد حذف هذا السجل؟'),
-                actions: [
-                  TextButton(onPressed: () => Navigator.of(c).pop(false), child: const Text('لا')),
-                  TextButton(onPressed: () => Navigator.of(c).pop(true), child: const Text('نعم')),
-                ],
-              ),
-            );
-            if (confirm == true && onDelete != null) {
-              await onDelete!(row['id']);
+            if (onEdit != null) {
+              // Use Future.microtask to avoid blocking the popup menu
+              Future.microtask(() => onEdit!(row));
             }
+          } else if (v == 'delete') {
+            // Use Future.microtask to avoid blocking the popup menu
+            Future.microtask(() async {
+              final confirm = await showDialog<bool>(
+                context: _dummyContext,
+                builder: (c) => AlertDialog(
+                  title: const Text('حذف'),
+                  content: const Text('هل تريد حذف هذا السجل؟'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.of(c).pop(false), child: const Text('لا')),
+                    TextButton(onPressed: () => Navigator.of(c).pop(true), child: const Text('نعم')),
+                  ],
+                ),
+              );
+              if (confirm == true && onDelete != null) {
+                await onDelete!(row['id']);
+              }
+            });
           }
         },
         itemBuilder: (_) => [
@@ -968,10 +1182,13 @@ class StudentsTable extends StatelessWidget {
     _dummyContext = context;
     return Directionality(
       textDirection: TextDirection.rtl,
-      child: DataTable(
-        columns: _buildColumns(),
-        rows: _buildRows(),
-        columnSpacing: 24,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          columns: _buildColumns(),
+          rows: _buildRows(),
+          columnSpacing: 24,
+        ),
       ),
     );
   }

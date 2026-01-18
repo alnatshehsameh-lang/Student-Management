@@ -7,12 +7,12 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:universal_html/html.dart' as html;
 
-class AttendanceReportScreen extends StatefulWidget {
+class AttendanceReportScreenNew extends StatefulWidget {
   final UserSession userSession;
-  const AttendanceReportScreen({super.key, required this.userSession});
+  const AttendanceReportScreenNew({super.key, required this.userSession});
 
   @override
-  State<AttendanceReportScreen> createState() => _AttendanceReportScreenState();
+  State<AttendanceReportScreenNew> createState() => _AttendanceReportScreenNewState();
 }
 
 class _AttendanceStats {
@@ -25,7 +25,7 @@ class _AttendanceStats {
   int get total => attend + absent + excuse;
 }
 
-class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
+class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
   final _client = Supabase.instance.client;
   
   // Filters
@@ -87,6 +87,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
   Future<void> _loadFilterOptions() async {
     setState(() => _filtersLoading = true);
     try {
+      // Load groups
       var groupsBuilder = _client.from('Groups').select('id, "Group_Name"');
       if (!widget.userSession.isAdmin && _userGroupId != null) {
         groupsBuilder = groupsBuilder.eq('id', _userGroupId!);
@@ -96,6 +97,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
         _groups = List<Map<String, dynamic>>.from(groupsRes);
       }
 
+      // Load types
       var typesBuilder = _client.from('Types').select('id, "Type"');
       if (!widget.userSession.isAdmin && _userTypeId != null) {
         typesBuilder = typesBuilder.eq('id', _userTypeId!);
@@ -105,6 +107,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
         _types = List<Map<String, dynamic>>.from(typesRes);
       }
 
+      // Load classes
       var classesBuilder = _client.from('Classes').select('id, "Class_Number"');
       if (!widget.userSession.isAdmin && _userClassId != null) {
         classesBuilder = classesBuilder.eq('id', _userClassId!);
@@ -141,6 +144,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
       final startDateStr = _startDate!.toIso8601String().split('T')[0];
       final endDateStr = _endDate!.toIso8601String().split('T')[0];
 
+      // Optimized query: get students with their attendance in one go
       final studentsRes = await _client
           .from('Students')
           .select('id, "Student_Name", "Student_Code"')
@@ -170,6 +174,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
 
       final combined = <Map<String, dynamic>>[];
 
+      // Fetch Tadabur attendance
       final tadaburRes = await _client
           .from('Attendance_Tadabur')
           .select('*')
@@ -190,6 +195,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
         }
       }
 
+      // Fetch Sard attendance
       final sardRes = await _client
           .from('Attendance_Sard')
           .select('*')
@@ -210,6 +216,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
         }
       }
 
+      // Sort by date descending
       combined.sort((a, b) {
         final dateA = DateTime.tryParse(a['Report_date'].toString()) ?? DateTime(2000);
         final dateB = DateTime.tryParse(b['Report_date'].toString()) ?? DateTime(2000);
@@ -251,6 +258,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
       final excel = excel_pkg.Excel.createExcel();
       final sheet = excel['تقرير_الحضور'];
 
+      // Add headers
       sheet.appendRow([
         excel_pkg.TextCellValue('التاريخ'),
         excel_pkg.TextCellValue('اسم الطالب'),
@@ -261,6 +269,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
         excel_pkg.TextCellValue('معتذر'),
       ]);
 
+      // Add data rows
       for (final record in _reportData) {
         final date = record['Report_date']?.toString().split('T')[0] ?? '';
         final studentName = record['Students']?['Student_Name'] ?? '';
@@ -281,6 +290,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
         ]);
       }
 
+      // Save file
       final bytes = excel.encode();
       if (bytes != null) {
         final blob = html.Blob([Uint8List.fromList(bytes)]);
@@ -391,6 +401,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
         textDirection: TextDirection.rtl,
         child: Column(
           children: [
+            // Compact Dashboard-style Filters
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -407,6 +418,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
                   ? const Center(child: CircularProgressIndicator())
                   : _buildFiltersRow(),
             ),
+            // Report Results
             Expanded(
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
@@ -527,6 +539,150 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildFiltersRow() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 900;
+
+        final filterControls = [
+          SizedBox(
+            width: isWide ? 180 : double.infinity,
+            child: _buildCompactDropdown(
+              label: 'المجموعة',
+              value: _selectedGroupId,
+              items: _groups,
+              idKey: 'id',
+              nameKey: 'Group_Name',
+              onChanged: (value) {
+                setState(() {
+                  _selectedGroupId = value;
+                  _reportData = [];
+                });
+              },
+            ),
+          ),
+          SizedBox(
+            width: isWide ? 180 : double.infinity,
+            child: _buildCompactDropdown(
+              label: 'الرواية',
+              value: _selectedTypeId,
+              items: _types,
+              idKey: 'id',
+              nameKey: 'Type',
+              onChanged: (value) {
+                setState(() {
+                  _selectedTypeId = value;
+                  _reportData = [];
+                });
+              },
+            ),
+          ),
+          SizedBox(
+            width: isWide ? 180 : double.infinity,
+            child: _buildCompactDropdown(
+              label: 'الحلقة',
+              value: _selectedClassId,
+              items: _classes,
+              idKey: 'id',
+              nameKey: 'Class_Number',
+              onChanged: (value) {
+                setState(() {
+                  _selectedClassId = value;
+                  _reportData = [];
+                });
+              },
+            ),
+          ),
+          SizedBox(
+            width: isWide ? 160 : double.infinity,
+            child: _buildCompactDatePicker(
+              label: 'من تاريخ',
+              date: _startDate,
+              onTap: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _startDate ?? DateTime.now(),
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime.now(),
+                );
+                if (picked != null && mounted) {
+                  setState(() {
+                    _startDate = picked;
+                    _reportData = [];
+                  });
+                }
+              },
+            ),
+          ),
+          SizedBox(
+            width: isWide ? 160 : double.infinity,
+            child: _buildCompactDatePicker(
+              label: 'إلى تاريخ',
+              date: _endDate,
+              onTap: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _endDate ?? DateTime.now(),
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime.now(),
+                );
+                if (picked != null && mounted) {
+                  setState(() {
+                    _endDate = picked;
+                    _reportData = [];
+                  });
+                }
+              },
+            ),
+          ),
+          SizedBox(
+            width: isWide ? 130 : double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _loading ? null : _generateReport,
+              icon: _loading
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.search),
+              label: const Text('عرض'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                backgroundColor: const Color(0xFF6366F1),
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ),
+        ];
+
+        if (isWide) {
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                ..._intersperse(filterControls, const SizedBox(width: 12)),
+              ],
+            ),
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ..._intersperse(filterControls, const SizedBox(height: 10)),
+          ],
+        );
+      },
+    );
+  }
+
+  List<Widget> _intersperse(List<Widget> items, Widget spacer) {
+    final result = <Widget>[];
+    for (var i = 0; i < items.length; i++) {
+      result.add(items[i]);
+      if (i != items.length - 1) result.add(spacer);
+    }
+    return result;
   }
 
   _AttendanceStats _computeStats() {
@@ -656,149 +812,5 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
         Text('$label: $value'),
       ],
     );
-  }
-
-  Widget _buildFiltersRow() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isWide = constraints.maxWidth >= 900;
-
-        final filterControls = [
-          SizedBox(
-            width: isWide ? 150 : double.infinity,
-            child: _buildCompactDropdown(
-              label: 'المجموعة',
-              value: _selectedGroupId,
-              items: _groups,
-              idKey: 'id',
-              nameKey: 'Group_Name',
-              onChanged: (value) {
-                setState(() {
-                  _selectedGroupId = value;
-                  _reportData = [];
-                });
-              },
-            ),
-          ),
-          SizedBox(
-            width: isWide ? 150 : double.infinity,
-            child: _buildCompactDropdown(
-              label: 'الرواية',
-              value: _selectedTypeId,
-              items: _types,
-              idKey: 'id',
-              nameKey: 'Type',
-              onChanged: (value) {
-                setState(() {
-                  _selectedTypeId = value;
-                  _reportData = [];
-                });
-              },
-            ),
-          ),
-          SizedBox(
-            width: isWide ? 150 : double.infinity,
-            child: _buildCompactDropdown(
-              label: 'الحلقة',
-              value: _selectedClassId,
-              items: _classes,
-              idKey: 'id',
-              nameKey: 'Class_Number',
-              onChanged: (value) {
-                setState(() {
-                  _selectedClassId = value;
-                  _reportData = [];
-                });
-              },
-            ),
-          ),
-          SizedBox(
-            width: isWide ? 150 : double.infinity,
-            child: _buildCompactDatePicker(
-              label: 'من تاريخ',
-              date: _startDate,
-              onTap: () async {
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate: _startDate ?? DateTime.now(),
-                  firstDate: DateTime(2020),
-                  lastDate: DateTime.now(),
-                );
-                if (picked != null && mounted) {
-                  setState(() {
-                    _startDate = picked;
-                    _reportData = [];
-                  });
-                }
-              },
-            ),
-          ),
-          SizedBox(
-            width: isWide ? 150 : double.infinity,
-            child: _buildCompactDatePicker(
-              label: 'إلى تاريخ',
-              date: _endDate,
-              onTap: () async {
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate: _endDate ?? DateTime.now(),
-                  firstDate: DateTime(2020),
-                  lastDate: DateTime.now(),
-                );
-                if (picked != null && mounted) {
-                  setState(() {
-                    _endDate = picked;
-                    _reportData = [];
-                  });
-                }
-              },
-            ),
-          ),
-          SizedBox(
-            width: isWide ? 120 : double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _loading ? null : _generateReport,
-              icon: _loading
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.search),
-              label: const Text('عرض'),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                backgroundColor: const Color(0xFF6366F1),
-                foregroundColor: Colors.white,
-              ),
-            ),
-          ),
-        ];
-
-        if (isWide) {
-          return SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                ..._intersperse(filterControls, const SizedBox(width: 8)),
-              ],
-            ),
-          );
-        }
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            ..._intersperse(filterControls, const SizedBox(height: 8)),
-          ],
-        );
-      },
-    );
-  }
-
-  List<Widget> _intersperse(List<Widget> items, Widget spacer) {
-    final result = <Widget>[];
-    for (var i = 0; i < items.length; i++) {
-      result.add(items[i]);
-      if (i != items.length - 1) result.add(spacer);
-    }
-    return result;
   }
 }
