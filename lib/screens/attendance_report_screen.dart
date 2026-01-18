@@ -487,45 +487,100 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
   }
 
   Widget _buildReportTable() {
+    final tadaburData = _reportData.where((r) => r['_type'] == 'تدبر').toList();
+    final sardData = _reportData.where((r) => r['_type'] == 'سرد').toList();
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: DataTable(
-          headingRowColor: WidgetStateProperty.all(const Color(0xFF6366F1).withOpacity(0.1)),
-          columnSpacing: 24,
-          columns: const [
-            DataColumn(label: Text('التاريخ', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('اسم الطالب', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('رقم الطالب', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('النوع', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('حاضر', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('غائب', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('معتذر', style: TextStyle(fontWeight: FontWeight.bold))),
-          ],
-          rows: _reportData.map((record) {
-            final date = record['Report_date']?.toString().split('T')[0] ?? '';
-            final studentName = record['Students']?['Student_Name'] ?? '';
-            final studentCode = record['Students']?['Student_Code']?.toString() ?? '';
-            final type = record['_type'] ?? '';
-            final attend = record['Attend_flag'] == true || record['Attend_flag'] == 1;
-            final absent = record['Absent_flag'] == true || record['Absent_flag'] == 1;
-            final excuse = record['Execuse_flag'] == true || record['Execuse_flag'] == 1;
-
-            return DataRow(
-              cells: [
-                DataCell(Text(date)),
-                DataCell(Text(studentName)),
-                DataCell(Text(studentCode)),
-                DataCell(Text(type)),
-                DataCell(Icon(attend ? Icons.check_circle : Icons.remove_circle_outline, color: attend ? Colors.green : Colors.grey, size: 20)),
-                DataCell(Icon(absent ? Icons.check_circle : Icons.remove_circle_outline, color: absent ? Colors.red : Colors.grey, size: 20)),
-                DataCell(Icon(excuse ? Icons.check_circle : Icons.remove_circle_outline, color: excuse ? Colors.orange : Colors.grey, size: 20)),
-              ],
-            );
-          }).toList(),
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildTypeSection('تدبر', tadaburData),
+          const SizedBox(height: 32),
+          _buildTypeSection('سرد', sardData),
+        ],
       ),
+    );
+  }
+
+  Widget _buildTypeSection(String typeLabel, List<Map<String, dynamic>> data) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF6366F1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              Text(
+                typeLabel,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Text(
+                '(${data.length} سجل)',
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (data.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: Text(
+                'لا توجد سجلات حضور',
+                style: TextStyle(color: Colors.grey[600], fontSize: 16),
+              ),
+            ),
+          )
+        else
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              headingRowColor: WidgetStateProperty.all(const Color(0xFF6366F1).withOpacity(0.1)),
+              columnSpacing: 24,
+              columns: const [
+                DataColumn(label: Text('التاريخ', style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(label: Text('اسم الطالب', style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(label: Text('رقم الطالب', style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(label: Text('حاضر', style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(label: Text('غائب', style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(label: Text('معتذر', style: TextStyle(fontWeight: FontWeight.bold))),
+              ],
+              rows: data.map((record) {
+                final date = record['Report_date']?.toString().split('T')[0] ?? '';
+                final studentName = record['Students']?['Student_Name'] ?? '';
+                final studentCode = record['Students']?['Student_Code']?.toString() ?? '';
+                final attend = record['Attend_flag'] == true || record['Attend_flag'] == 1;
+                final absent = record['Absent_flag'] == true || record['Absent_flag'] == 1;
+                final excuse = record['Execuse_flag'] == true || record['Execuse_flag'] == 1;
+
+                return DataRow(
+                  cells: [
+                    DataCell(Text(date)),
+                    DataCell(Text(studentName)),
+                    DataCell(Text(studentCode)),
+                    DataCell(Icon(attend ? Icons.check_circle : Icons.remove_circle_outline, color: attend ? Colors.green : Colors.grey, size: 20)),
+                    DataCell(Icon(absent ? Icons.check_circle : Icons.remove_circle_outline, color: absent ? Colors.red : Colors.grey, size: 20)),
+                    DataCell(Icon(excuse ? Icons.check_circle : Icons.remove_circle_outline, color: excuse ? Colors.orange : Colors.grey, size: 20)),
+                  ],
+                );
+              }).toList(),
+            ),
+          ),
+      ],
     );
   }
 
@@ -665,7 +720,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
 
         final filterControls = [
           SizedBox(
-            width: isWide ? 150 : double.infinity,
+            width: isWide ? 140 : double.infinity,
             child: _buildCompactDropdown(
               label: 'المجموعة',
               value: _selectedGroupId,
@@ -681,7 +736,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
             ),
           ),
           SizedBox(
-            width: isWide ? 150 : double.infinity,
+            width: isWide ? 140 : double.infinity,
             child: _buildCompactDropdown(
               label: 'الرواية',
               value: _selectedTypeId,
@@ -697,7 +752,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
             ),
           ),
           SizedBox(
-            width: isWide ? 150 : double.infinity,
+            width: isWide ? 140 : double.infinity,
             child: _buildCompactDropdown(
               label: 'الحلقة',
               value: _selectedClassId,
@@ -713,7 +768,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
             ),
           ),
           SizedBox(
-            width: isWide ? 150 : double.infinity,
+            width: isWide ? 130 : double.infinity,
             child: _buildCompactDatePicker(
               label: 'من تاريخ',
               date: _startDate,
@@ -734,7 +789,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
             ),
           ),
           SizedBox(
-            width: isWide ? 150 : double.infinity,
+            width: isWide ? 130 : double.infinity,
             child: _buildCompactDatePicker(
               label: 'إلى تاريخ',
               date: _endDate,
@@ -755,7 +810,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
             ),
           ),
           SizedBox(
-            width: isWide ? 120 : double.infinity,
+            width: isWide ? 100 : double.infinity,
             child: ElevatedButton.icon(
               onPressed: _loading ? null : _generateReport,
               icon: _loading
@@ -776,6 +831,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
             scrollDirection: Axis.horizontal,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 ..._intersperse(filterControls, const SizedBox(width: 8)),
               ],
@@ -783,11 +839,14 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
           );
         }
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            ..._intersperse(filterControls, const SizedBox(height: 8)),
-          ],
+        return SingleChildScrollView(
+          scrollDirection: Axis.vertical,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ..._intersperse(filterControls, const SizedBox(height: 8)),
+            ],
+          ),
         );
       },
     );
