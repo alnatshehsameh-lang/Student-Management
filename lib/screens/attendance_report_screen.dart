@@ -391,18 +391,30 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
 
   Future<pw.Font> _loadArabicFont() async {
     try {
-      // Load Noto Sans Arabic font from Google Fonts (Regular weight)
+      // Try Amiri font - a well-known Arabic font
       final response = await html.HttpRequest.request(
-        'https://fonts.gstatic.com/s/notosansarabic/v18/nwpCtLGrOAZMl5nJ_wfgRg3DrWFZWsnVBJ_sS6tlqHHFlhQ5l3sQWIHPqzCfyGyvu3CBFQLaig.ttf',
+        'https://github.com/alif-type/amiri/raw/main/Amiri-Regular.ttf',
         responseType: 'arraybuffer',
       );
       final byteBuffer = response.response as ByteBuffer;
       final fontData = byteBuffer.asByteData();
       return pw.Font.ttf(fontData);
     } catch (e) {
-      debugPrint('Error loading Arabic font: $e');
-      // Fallback to default font if custom font fails
-      return pw.Font.helvetica();
+      debugPrint('Error loading Amiri font, trying alternative: $e');
+      try {
+        // Fallback to Tajawal font
+        final response = await html.HttpRequest.request(
+          'https://fonts.gstatic.com/s/tajawal/v9/Iurf6YBj_oCad4k1l_6gLrZjiLlJ-G0.ttf',
+          responseType: 'arraybuffer',
+        );
+        final byteBuffer = response.response as ByteBuffer;
+        final fontData = byteBuffer.asByteData();
+        return pw.Font.ttf(fontData);
+      } catch (e2) {
+        debugPrint('Error loading Tajawal font: $e2');
+        // Last resort fallback
+        return pw.Font.helvetica();
+      }
     }
   }
 
