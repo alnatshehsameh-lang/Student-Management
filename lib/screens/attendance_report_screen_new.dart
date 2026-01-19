@@ -6,6 +6,7 @@ import 'package:excel/excel.dart' as excel_pkg;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:universal_html/html.dart' as html;
+import 'package:google_fonts/google_fonts.dart';
 
 class AttendanceReportScreenNew extends StatefulWidget {
   final UserSession userSession;
@@ -327,16 +328,32 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
     try {
       final pdf = pw.Document();
 
+      // Create Arabic-supporting text style
+      final arabicStyle = pw.TextStyle(
+        fontSize: 12,
+      );
+      
+      final arabicHeaderStyle = pw.TextStyle(
+        fontSize: 14,
+        fontWeight: pw.FontWeight.bold,
+      );
+
       pdf.addPage(
         pw.MultiPage(
           build: (context) => [
             pw.Header(
               level: 0,
-              child: pw.Text('تقرير الحضور', style: const pw.TextStyle(fontSize: 24)),
+              child: pw.Text(
+                'تقرير الحضور',
+                style: arabicHeaderStyle,
+                textDirection: pw.TextDirection.rtl,
+              ),
             ),
             pw.SizedBox(height: 20),
             pw.TableHelper.fromTextArray(
               headers: ['التاريخ', 'اسم الطالب', 'رقم الطالب', 'النوع', 'حاضر', 'غائب', 'معتذر'],
+              headerStyle: arabicHeaderStyle,
+              cellStyle: arabicStyle,
               data: _reportData.map((record) {
                 final date = record['Report_date']?.toString().split('T')[0] ?? '';
                 final studentName = record['Students']?['Student_Name'] ?? '';
@@ -348,8 +365,10 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
 
                 return [date, studentName, studentCode, type, attend, absent, excuse];
               }).toList(),
+              cellAlignment: pw.Alignment.centerLeft,
             ),
           ],
+          textDirection: pw.TextDirection.rtl,
         ),
       );
 
