@@ -6,7 +6,6 @@ import 'package:excel/excel.dart' as excel_pkg;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:universal_html/html.dart' as html;
-import 'package:google_fonts/google_fonts.dart';
 
 class AttendanceReportScreen extends StatefulWidget {
   final UserSession userSession;
@@ -318,14 +317,19 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
     try {
       final pdf = pw.Document();
 
-      // Create Arabic-supporting text style
+      // Load Arabic font from Google Fonts
+      final arabicFontData = await _loadArabicFont();
+
+      // Create Arabic-supporting text style with the custom font
       final arabicStyle = pw.TextStyle(
         fontSize: 12,
+        font: arabicFontData,
       );
       
       final arabicHeaderStyle = pw.TextStyle(
         fontSize: 14,
         fontWeight: pw.FontWeight.bold,
+        font: arabicFontData,
       );
 
       pdf.addPage(
@@ -382,6 +386,23 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
           SnackBar(content: Text('خطأ في التصدير: $e')),
         );
       }
+    }
+  }
+
+  Future<pw.Font> _loadArabicFont() async {
+    try {
+      // Load Noto Sans Arabic font from Google Fonts
+      final response = await html.HttpRequest.request(
+        'https://fonts.gstatic.com/s/notosanskurdish/v20/ga6jA0RViIv8Jh5VECKREyS4S9Ja-H9fvEZfPgWEOqVj7qWhccmj1bxaLIMGKvPEZRGe6w.0.ttf',
+        responseType: 'arraybuffer',
+      );
+      final byteBuffer = response.response as ByteBuffer;
+      final fontData = byteBuffer.asByteData();
+      return pw.Font.ttf(fontData);
+    } catch (e) {
+      debugPrint('Error loading Arabic font: $e');
+      // Fallback to default font if custom font fails
+      return pw.Font.helvetica();
     }
   }
 
