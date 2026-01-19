@@ -391,9 +391,9 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
 
   Future<pw.Font> _loadArabicFont() async {
     try {
-      // Load Noto Sans Arabic font from Google Fonts
+      // Load Noto Sans Arabic font from Google Fonts (Regular weight)
       final response = await html.HttpRequest.request(
-        'https://fonts.gstatic.com/s/notosanskurdish/v20/ga6jA0RViIv8Jh5VECKREyS4S9Ja-H9fvEZfPgWEOqVj7qWhccmj1bxaLIMGKvPEZRGe6w.0.ttf',
+        'https://fonts.gstatic.com/s/notosansarabic/v18/nwpCtLGrOAZMl5nJ_wfgRg3DrWFZWsnVBJ_sS6tlqHHFlhQ5l3sQWIHPqzCfyGyvu3CBFQLaig.ttf',
         responseType: 'arraybuffer',
       );
       final byteBuffer = response.response as ByteBuffer;

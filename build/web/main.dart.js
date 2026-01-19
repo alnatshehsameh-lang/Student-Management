@@ -127944,7 +127944,7 @@ E0(){var s=0,r=A.R(t.t1),q,p=2,o=[],n,m,l,k,j,i
 var $async$E0=A.N(function(a,b){if(a===1){o.push(b)
 s=p}while(true)switch(s){case 0:p=4
 s=7
-return A.D(A.bkf("https://fonts.gstatic.com/s/notosanskurdish/v20/ga6jA0RViIv8Jh5VECKREyS4S9Ja-H9fvEZfPgWEOqVj7qWhccmj1bxaLIMGKvPEZRGe6w.0.ttf","arraybuffer"),$async$E0)
+return A.D(A.bkf("https://fonts.gstatic.com/s/notosansarabic/v18/nwpCtLGrOAZMl5nJ_wfgRg3DrWFZWsnVBJ_sS6tlqHHFlhQ5l3sQWIHPqzCfyGyvu3CBFQLaig.ttf","arraybuffer"),$async$E0)
 case 7:n=b
 m=t.pI.a(A.brO(n.response))
 l=J.ht(m)
