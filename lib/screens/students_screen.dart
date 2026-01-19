@@ -574,6 +574,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
   void _showAddStudentDialog() {
     final nameController = TextEditingController();
     final mobileController = TextEditingController();
+    final codeController = TextEditingController();
     // Pre-select if user has restrictions
     final hasGroupRestriction = widget.userSession?.isAdmin == false && _userGroupId != null;
     final hasClassRestriction = widget.userSession?.isAdmin == false && _userClassId != null;
@@ -610,6 +611,15 @@ class _StudentsScreenState extends State<StudentsScreen> {
                         border: OutlineInputBorder(),
                       ),
                       keyboardType: TextInputType.phone,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: codeController,
+                      decoration: const InputDecoration(
+                        labelText: 'كود الطالب (يُستخدم إذا لم يوجد طلاب في المجموعة)',
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.number,
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<dynamic>(
@@ -700,23 +710,46 @@ class _StudentsScreenState extends State<StudentsScreen> {
                       'Mobile_No': mobile.isNotEmpty ? mobile : null,
                     };
 
-                    // Enforce restrictions: use user's IDs if restricted
-                    if (hasGroupRestriction) {
-                      studentData['Group_id'] = _userGroupId;
-                    } else if (selectedGroup != null) {
-                      studentData['Group_id'] = selectedGroup;
+                    // Resolve group / class / type respecting restrictions
+                    final targetGroupId = hasGroupRestriction ? _userGroupId : selectedGroup;
+                    final targetClassId = hasClassRestriction ? _userClassId : selectedClass;
+                    final targetTypeId = hasTypeRestriction ? _userTypeId : selectedType;
+
+                    if (targetGroupId == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('يرجى اختيار المجموعة')),
+                      );
+                      return;
                     }
-                    
-                    if (hasClassRestriction) {
-                      studentData['Class_id'] = _userClassId;
-                    } else if (selectedClass != null) {
-                      studentData['Class_id'] = selectedClass;
-                    }
-                    
-                    if (hasTypeRestriction) {
-                      studentData['Type_id'] = _userTypeId;
-                    } else if (selectedType != null) {
-                      studentData['Type_id'] = selectedType;
+
+                    studentData['Group_id'] = targetGroupId;
+                    if (targetClassId != null) studentData['Class_id'] = targetClassId;
+                    if (targetTypeId != null) studentData['Type_id'] = targetTypeId;
+
+                    // Auto-generate Student_Code: max(Student_Code) for the group + 1.
+                    // If no students exist in the group, require user input.
+                    final maxCodeRow = await _client
+                        .from('Students')
+                        .select('Student_Code')
+                        .eq('Group_id', targetGroupId)
+                        .order('Student_Code', ascending: false)
+                        .limit(1)
+                        .maybeSingle();
+
+                    final existingCode = maxCodeRow?['Student_Code'];
+                    if (existingCode != null) {
+                      final parsed = int.tryParse(existingCode.toString());
+                      final nextCode = parsed != null ? parsed + 1 : 1;
+                      studentData['Student_Code'] = nextCode;
+                    } else {
+                      final manualCode = codeController.text.trim();
+                      if (manualCode.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('لا يوجد طلاب في هذه المجموعة، يرجى إدخال كود الطالب يدويًا')),
+                        );
+                        return;
+                      }
+                      studentData['Student_Code'] = manualCode;
                     }
 
                     await _client.from('Students').insert(studentData);
