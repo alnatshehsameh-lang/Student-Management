@@ -250,7 +250,37 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
     try {
       final excel = excel_pkg.Excel.createExcel();
       final sheet = excel['تقرير_الحضور'];
-
+      
+      // Add title
+      sheet.appendRow([
+        excel_pkg.TextCellValue('تقرير الحضور'),
+      ]);
+      sheet.appendRow([]); // Empty row
+      
+      // Add statistics summary
+      final stats = _computeStats();
+      sheet.appendRow([
+        excel_pkg.TextCellValue('ملخص الإحصائيات'),
+      ]);
+      sheet.appendRow([
+        excel_pkg.TextCellValue('الحالة'),
+        excel_pkg.TextCellValue('العدد'),
+      ]);
+      sheet.appendRow([
+        excel_pkg.TextCellValue('حاضر'),
+        excel_pkg.IntCellValue(stats.attend),
+      ]);
+      sheet.appendRow([
+        excel_pkg.TextCellValue('غائب'),
+        excel_pkg.IntCellValue(stats.absent),
+      ]);
+      sheet.appendRow([
+        excel_pkg.TextCellValue('معتذر'),
+        excel_pkg.IntCellValue(stats.excuse),
+      ]);
+      sheet.appendRow([]); // Empty row
+      
+      // Add main table header
       sheet.appendRow([
         excel_pkg.TextCellValue('التاريخ'),
         excel_pkg.TextCellValue('اسم الطالب'),
@@ -280,6 +310,15 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
           excel_pkg.TextCellValue(excuse),
         ]);
       }
+
+      // Set column widths
+      sheet.setColumnWidth(0, 15);
+      sheet.setColumnWidth(1, 25);
+      sheet.setColumnWidth(2, 15);
+      sheet.setColumnWidth(3, 15);
+      sheet.setColumnWidth(4, 12);
+      sheet.setColumnWidth(5, 12);
+      sheet.setColumnWidth(6, 12);
 
       final bytes = excel.encode();
       if (bytes != null) {
@@ -320,30 +359,66 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
       // Load Arabic font from Google Fonts
       final arabicFontData = await _loadArabicFont();
 
-      // Create Arabic-supporting text style with the custom font
-      final arabicStyle = pw.TextStyle(
-        fontSize: 12,
+      // Create text styles with Arabic font
+      final titleStyle = pw.TextStyle(
+        fontSize: 20,
+        fontWeight: pw.FontWeight.bold,
         font: arabicFontData,
       );
       
       final arabicHeaderStyle = pw.TextStyle(
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: pw.FontWeight.bold,
         font: arabicFontData,
       );
+      
+      final arabicStyle = pw.TextStyle(
+        fontSize: 11,
+        font: arabicFontData,
+      );
+
+      // Compute statistics
+      final stats = _computeStats();
 
       pdf.addPage(
         pw.MultiPage(
           build: (context) => [
-            pw.Header(
-              level: 0,
-              child: pw.Text(
-                'تقرير الحضور',
-                style: arabicHeaderStyle,
-                textDirection: pw.TextDirection.rtl,
-              ),
+            // Title
+            pw.Text(
+              'تقرير الحضور',
+              style: titleStyle,
+              textDirection: pw.TextDirection.rtl,
             ),
             pw.SizedBox(height: 20),
+
+            // Statistics Summary
+            pw.Text(
+              'ملخص الإحصائيات',
+              style: arabicHeaderStyle,
+              textDirection: pw.TextDirection.rtl,
+            ),
+            pw.SizedBox(height: 8),
+            pw.TableHelper.fromTextArray(
+              headers: ['الحالة', 'العدد'],
+              headerStyle: arabicHeaderStyle,
+              cellStyle: arabicStyle,
+              data: [
+                ['حاضر', stats.attend.toString()],
+                ['غائب', stats.absent.toString()],
+                ['معتذر', stats.excuse.toString()],
+                ['المجموع', stats.total.toString()],
+              ],
+              cellAlignment: pw.Alignment.centerLeft,
+            ),
+            pw.SizedBox(height: 20),
+
+            // Main Data Table
+            pw.Text(
+              'تفاصيل السجلات',
+              style: arabicHeaderStyle,
+              textDirection: pw.TextDirection.rtl,
+            ),
+            pw.SizedBox(height: 8),
             pw.TableHelper.fromTextArray(
               headers: ['التاريخ', 'اسم الطالب', 'رقم الطالب', 'النوع', 'حاضر', 'غائب', 'معتذر'],
               headerStyle: arabicHeaderStyle,
@@ -353,9 +428,9 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
                 final studentName = record['Students']?['Student_Name'] ?? '';
                 final studentCode = record['Students']?['Student_Code']?.toString() ?? '';
                 final type = record['_type'] ?? '';
-                final attend = (record['Attend_flag'] == true || record['Attend_flag'] == 1) ? 'نعم' : 'لا';
-                final absent = (record['Absent_flag'] == true || record['Absent_flag'] == 1) ? 'نعم' : 'لا';
-                final excuse = (record['Execuse_flag'] == true || record['Execuse_flag'] == 1) ? 'نعم' : 'لا';
+                final attend = (record['Attend_flag'] == true || record['Attend_flag'] == 1) ? '✓' : '';
+                final absent = (record['Absent_flag'] == true || record['Absent_flag'] == 1) ? '✓' : '';
+                final excuse = (record['Execuse_flag'] == true || record['Execuse_flag'] == 1) ? '✓' : '';
 
                 return [date, studentName, studentCode, type, attend, absent, excuse];
               }).toList(),
