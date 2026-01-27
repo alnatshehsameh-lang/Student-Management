@@ -995,7 +995,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('المجموعات'),
+        title: const Text('الحضور'),
         actions: [IconButton(icon: const Icon(Icons.refresh), onPressed: _fetchGroups)],
       ),
       body: Directionality(
@@ -1013,7 +1013,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('المجموعات', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        const Text('الحضور', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                         if (_selectedGroupId != null)
                           TextButton.icon(
                             onPressed: () {
