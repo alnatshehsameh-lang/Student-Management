@@ -1004,9 +1004,11 @@ class _GroupsScreenState extends State<GroupsScreen> {
           padding: const EdgeInsets.all(12.0),
           child: _loading
               ? const Center(child: CircularProgressIndicator())
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+              : Scrollbar(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                     // horizontal list of group cards (with counts and selected highlight)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1375,6 +1377,8 @@ class _GroupsScreenState extends State<GroupsScreen> {
                             ),
                     ),
                   ],
+                ),
+                  ),
                 ),
         ),
       ),
