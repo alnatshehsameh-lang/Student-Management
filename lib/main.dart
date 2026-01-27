@@ -559,7 +559,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         _NavItem(
                           icon: Icons.school,
-                          label: 'الطلاب',
+                          label: 'الطالبات',
                           onTap: () {
                             Navigator.push(
                               context,
@@ -571,7 +571,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         _NavItem(
                           icon: Icons.group,
-                          label: 'المجموعات',
+                          label: 'الحضور',
                           onTap: () {
                             Navigator.push(
                               context,
@@ -583,7 +583,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         _NavItem(
                           icon: Icons.supervisor_account,
-                          label: 'المشرفون',
+                          label: 'المشرفات',
                           onTap: () {},
                         ),
                         const SizedBox(height: 4),
@@ -713,12 +713,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                       childAspectRatio: 1.8,
                                       children: [
                                         _StatCard(
-                                          title: 'إجمالي الطلاب',
+                                          title: 'إجمالي الطالبات',
                                           value: _totalStudents.toString(),
                                           icon: Icons.school,
                                           color: const Color(0xFFF5F3FF),
                                           iconColor: const Color(0xFF6366F1),
-                                          subtitle: 'طالب مسجل',
+                                          subtitle: 'طالبة مسجلة',
                                         ),
                                         _StatCard(
                                           title: 'إجمالي المجموعات',
