@@ -32,7 +32,7 @@ class _ManageWeeklyLinksScreenState extends State<ManageWeeklyLinksScreen> {
   }
 
   Future<void> _fetchUserRestrictions() async {
-    if (widget.userSession.isAdmin || widget.userSession.userId == null) {
+    if (widget.userSession.hasFullAccess || widget.userSession.userId == null) {
       return;
     }
 

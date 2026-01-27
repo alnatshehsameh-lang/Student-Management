@@ -58,29 +58,15 @@ class _StudentsScreenState extends State<StudentsScreen> {
   Future<void> _fetchUserRestrictions() async {
     // Skip if admin or no userId or no userSession
     if (widget.userSession == null || 
-        widget.userSession!.isAdmin || 
-        widget.userSession!.userId == null) {
+        widget.userSession!.hasFullAccess) {
       return;
     }
 
-    try {
-      final response = await _client
-          .from('Managers')
-          .select('Class_id, Group_id, Type_id')
-          .eq('User_id', widget.userSession!.userId!)
-          .limit(1)
-          .maybeSingle();
-
-      if (response != null && mounted) {
-        setState(() {
-          _userClassId = response['Class_id'];
-          _userGroupId = response['Group_id'];
-          _userTypeId = response['Type_id'];
-        });
-      }
-    } catch (e) {
-      debugPrint('Failed to fetch user restrictions from Managers: $e');
-    }
+    setState(() {
+      _userClassId = widget.userSession!.assignedClassId;
+      _userGroupId = widget.userSession!.assignedGroupId;
+      _userTypeId = widget.userSession!.assignedTypeId;
+    });
   }
 
   @override

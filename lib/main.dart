@@ -207,7 +207,7 @@ class _LoginPageState extends State<LoginPage> {
           context,
           MaterialPageRoute(
             builder: (context) => HomeScreen(
-              userSession: UserSession(isAdmin: true, username: 'admin'),
+              userSession: UserSession(role: UserRole.admin, username: 'admin'),
             ),
           ),
         );
@@ -219,19 +219,59 @@ class _LoginPageState extends State<LoginPage> {
       // Query Users table for matching username and password
       final response = await _client
           .from('Users')
-          .select('id, username, email')
+          .select('id, username, email, role')
           .eq('username', username)
           .eq('password', password)
           .limit(1)
           .maybeSingle();
 
       if (response != null) {
-        // Login successful - create user session without class_id (will fetch on Groups screen)
+        // Parse user role
+        final roleStr = response['role']?.toString() ?? 'supervisor';
+        UserRole userRole;
+        switch (roleStr.toLowerCase()) {
+          case 'admin':
+            userRole = UserRole.admin;
+            break;
+          case 'manager':
+            userRole = UserRole.manager;
+            break;
+          default:
+            userRole = UserRole.supervisor;
+        }
+
+        // Fetch restrictions if user is a supervisor
+        int? assignedClassId;
+        int? assignedGroupId;
+        int? assignedTypeId;
+        
+        if (userRole == UserRole.supervisor) {
+          try {
+            final managerData = await _client
+                .from('Managers')
+                .select('Class_id, Group_id, Type_id')
+                .eq('User_id', response['id'])
+                .limit(1)
+                .maybeSingle();
+            
+            if (managerData != null) {
+              assignedClassId = managerData['Class_id'];
+              assignedGroupId = managerData['Group_id'];
+              assignedTypeId = managerData['Type_id'];
+            }
+          } catch (e) {
+            debugPrint('Error fetching supervisor restrictions: $e');
+          }
+        }
+
+        // Create user session
         final userSession = UserSession(
           userId: response['id'],
           username: response['username'],
-          classId: null,
-          isAdmin: false,
+          role: userRole,
+          assignedClassId: assignedClassId,
+          assignedGroupId: assignedGroupId,
+          assignedTypeId: assignedTypeId,
         );
 
         if (mounted) {
@@ -903,7 +943,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
 
   Future<void> _fetchUserRestrictions() async {
     // Skip if admin or no userId
-    if (widget.userSession.isAdmin || widget.userSession.userId == null) {
+    if (widget.userSession.hasFullAccess || widget.userSession.userId == null) {
       return;
     }
 
@@ -933,7 +973,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
       // Fetch groups and include nested Students to compute counts on the client.
       // Apply Group_id filter if user has restriction
       var builder = _client.from('Groups').select('id, "Group_Name", Students(id)');
-      if (!widget.userSession.isAdmin && _userGroupId != null) {
+      if (!widget.userSession.hasFullAccess && _userGroupId != null) {
         builder = builder.eq('id', _userGroupId!);
       }
       final res = await builder.range(0, 1000);
@@ -1436,7 +1476,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
     try {
       var builder = _client.from('Students').select('Type_id, Types(id, "Type")').eq('Group_id', groupId);
       // Apply restrictions if user has them
-      if (!widget.userSession.isAdmin) {
+      if (!widget.userSession.hasFullAccess) {
         if (_userClassId != null) builder = builder.eq('Class_id', _userClassId!);
         if (_userTypeId != null) builder = builder.eq('Type_id', _userTypeId!);
       }
@@ -1486,7 +1526,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
     try {
       var builder = _client.from('Students').select('Class_id, Classes(id, "Class_Number")').eq('Group_id', groupId).eq('Type_id', typeId);
       // Apply class restriction if user has class_id
-      if (!widget.userSession.isAdmin && _userClassId != null) {
+      if (!widget.userSession.hasFullAccess && _userClassId != null) {
         builder = builder.eq('Class_id', _userClassId!);
       }
       final res = await builder.range(0, 1000);
@@ -1548,7 +1588,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
       var builder = _client.from('Students').select('id, "Student_Name", "Student_Code", "Class_id", "Type_id", Classes(id, "Class_Number"), Types(id, "Type")').eq('Group_id', groupId).eq('Type_id', typeId);
       if (classId != null) builder = builder.eq('Class_id', classId);
       // Apply restrictions if user has them
-      if (!widget.userSession.isAdmin) {
+      if (!widget.userSession.hasFullAccess) {
         if (_userClassId != null) builder = builder.eq('Class_id', _userClassId!);
         if (_userGroupId != null) builder = builder.eq('Group_id', _userGroupId!);
         if (_userTypeId != null) builder = builder.eq('Type_id', _userTypeId!);
@@ -1658,7 +1698,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
     if (_selectedClassId == null || _students.isEmpty) return;
     
     // Validate restrictions: verify user is authorized for selected group/type/class
-    if (!widget.userSession.isAdmin) {
+    if (!widget.userSession.hasFullAccess) {
       if (_userGroupId != null && _selectedGroupId != _userGroupId) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

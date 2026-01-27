@@ -57,7 +57,7 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
   }
 
   Future<void> _fetchUserRestrictions() async {
-    if (widget.userSession.isAdmin || widget.userSession.userId == null) {
+    if (widget.userSession.hasFullAccess || widget.userSession.userId == null) {
       _loadFilterOptions();
       return;
     }
@@ -89,7 +89,7 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
     try {
       // Load groups
       var groupsBuilder = _client.from('Groups').select('id, "Group_Name"');
-      if (!widget.userSession.isAdmin && _userGroupId != null) {
+      if (!widget.userSession.hasFullAccess && _userGroupId != null) {
         groupsBuilder = groupsBuilder.eq('id', _userGroupId!);
       }
       final groupsRes = await groupsBuilder.order('Group_Name');
@@ -99,7 +99,7 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
 
       // Load types
       var typesBuilder = _client.from('Types').select('id, "Type"');
-      if (!widget.userSession.isAdmin && _userTypeId != null) {
+      if (!widget.userSession.hasFullAccess && _userTypeId != null) {
         typesBuilder = typesBuilder.eq('id', _userTypeId!);
       }
       final typesRes = await typesBuilder.order('Type');
@@ -109,7 +109,7 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
 
       // Load classes
       var classesBuilder = _client.from('Classes').select('id, "Class_Number"');
-      if (!widget.userSession.isAdmin && _userClassId != null) {
+      if (!widget.userSession.hasFullAccess && _userClassId != null) {
         classesBuilder = classesBuilder.eq('id', _userClassId!);
       }
       final classesRes = await classesBuilder.order('Class_Number');
@@ -257,6 +257,16 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
     try {
       final excel = excel_pkg.Excel.createExcel();
       final sheet = excel['تقرير_الحضور'];
+
+      // Simple styles for better visual hierarchy
+      final titleStyle = excel_pkg.CellStyle(
+        bold: true,
+        fontSize: 14,
+      );
+      final headerStyle = excel_pkg.CellStyle(
+        bold: true,
+        fontSize: 12,
+      );
       
       // Add title
       sheet.appendRow([
@@ -313,9 +323,9 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
         final studentName = record['Students']?['Student_Name'] ?? '';
         final studentCode = record['Students']?['Student_Code']?.toString() ?? '';
         final type = record['_type'] ?? '';
-        final attend = (record['Attend_flag'] == true || record['Attend_flag'] == 1) ? 'نعم' : 'لا';
-        final absent = (record['Absent_flag'] == true || record['Absent_flag'] == 1) ? 'نعم' : 'لا';
-        final excuse = (record['Execuse_flag'] == true || record['Execuse_flag'] == 1) ? 'نعم' : 'لا';
+        final attend = (record['Attend_flag'] == true || record['Attend_flag'] == 1) ? '✓' : '';
+        final absent = (record['Absent_flag'] == true || record['Absent_flag'] == 1) ? '✓' : '';
+        final excuse = (record['Execuse_flag'] == true || record['Execuse_flag'] == 1) ? '✓' : '';
 
         sheet.appendRow([
           excel_pkg.TextCellValue(date),
@@ -336,6 +346,10 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
       sheet.setColumnWidth(4, 12);
       sheet.setColumnWidth(5, 12);
       sheet.setColumnWidth(6, 12);
+
+      // Apply basic styles to title and headers
+      sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0)).cellStyle = titleStyle;
+      sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 2)).cellStyle = headerStyle;
 
       final bytes = excel.encode();
       if (bytes != null) {

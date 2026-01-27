@@ -25,7 +25,7 @@ class _WeeklyWerdReportsScreenState extends State<WeeklyWerdReportsScreen> {
   }
 
   Future<void> _fetchUserRestrictions() async {
-    if (widget.userSession.isAdmin || widget.userSession.userId == null) {
+    if (widget.userSession.hasFullAccess || widget.userSession.userId == null) {
       _fetchSubmissions();
       return;
     }
@@ -59,7 +59,7 @@ class _WeeklyWerdReportsScreenState extends State<WeeklyWerdReportsScreen> {
           .select('*, Students(id, Student_Name, Student_Code, Class_id, Group_id)');
 
       // Apply restrictions
-      if (!widget.userSession.isAdmin) {
+      if (!widget.userSession.hasFullAccess) {
         if (_userClassId != null) {
           builder = builder.eq('Class_id', _userClassId!);
         }
