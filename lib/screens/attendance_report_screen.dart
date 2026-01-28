@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_session.dart';
+import '../services/export_helper.dart';
 import 'dart:typed_data';
 import 'package:excel/excel.dart' as excel_pkg;
 import 'package:fl_chart/fl_chart.dart';
@@ -57,7 +58,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
   }
 
   Future<void> _fetchUserRestrictions() async {
-    if (widget.userSession.hasFullAccess || widget.userSession.userId == null) {
+    if (widget.userSession.isAdmin || widget.userSession.userId == null) {
       _loadFilterOptions();
       return;
     }
@@ -88,7 +89,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
     setState(() => _filtersLoading = true);
     try {
       var groupsBuilder = _client.from('Groups').select('id, "Group_Name"');
-      if (!widget.userSession.hasFullAccess && _userGroupId != null) {
+      if (!widget.userSession.isAdmin && _userGroupId != null) {
         groupsBuilder = groupsBuilder.eq('id', _userGroupId!);
       }
       final groupsRes = await groupsBuilder.order('Group_Name');
@@ -97,7 +98,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
       }
 
       var typesBuilder = _client.from('Types').select('id, "Type"');
-      if (!widget.userSession.hasFullAccess && _userTypeId != null) {
+      if (!widget.userSession.isAdmin && _userTypeId != null) {
         typesBuilder = typesBuilder.eq('id', _userTypeId!);
       }
       final typesRes = await typesBuilder.order('Type');
@@ -106,7 +107,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
       }
 
       var classesBuilder = _client.from('Classes').select('id, "Class_Number"');
-      if (!widget.userSession.hasFullAccess && _userClassId != null) {
+      if (!widget.userSession.isAdmin && _userClassId != null) {
         classesBuilder = classesBuilder.eq('id', _userClassId!);
       }
       final classesRes = await classesBuilder.order('Class_Number');
@@ -251,6 +252,50 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
       final excel = excel_pkg.Excel.createExcel();
       final sheet = excel['تقرير_الحضور'];
 
+      // Simple title and header styles
+      final titleStyle = excel_pkg.CellStyle(
+        bold: true,
+        fontSize: 14,
+      );
+      final headerStyle = excel_pkg.CellStyle(
+        bold: true,
+        fontSize: 12,
+      );
+      
+      // Add title
+      sheet.appendRow([
+        excel_pkg.TextCellValue('تقرير الحضور'),
+      ]);
+      sheet.appendRow([]); // Empty row
+      
+      // Add statistics summary
+      final stats = _computeStats();
+      sheet.appendRow([
+        excel_pkg.TextCellValue('ملخص الإحصائيات'),
+      ]);
+      sheet.appendRow([
+        excel_pkg.TextCellValue('الحالة'),
+        excel_pkg.TextCellValue('العدد'),
+      ]);
+      sheet.appendRow([
+        excel_pkg.TextCellValue('حاضر'),
+        excel_pkg.IntCellValue(stats.attend),
+      ]);
+      sheet.appendRow([
+        excel_pkg.TextCellValue('غائب'),
+        excel_pkg.IntCellValue(stats.absent),
+      ]);
+      sheet.appendRow([
+        excel_pkg.TextCellValue('معتذر'),
+        excel_pkg.IntCellValue(stats.excuse),
+      ]);
+      sheet.appendRow([
+        excel_pkg.TextCellValue('المجموع'),
+        excel_pkg.IntCellValue(stats.total),
+      ]);
+      sheet.appendRow([]); // Empty row
+      
+      // Add main table header
       sheet.appendRow([
         excel_pkg.TextCellValue('التاريخ'),
         excel_pkg.TextCellValue('اسم الطالب'),
@@ -266,9 +311,9 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
         final studentName = record['Students']?['Student_Name'] ?? '';
         final studentCode = record['Students']?['Student_Code']?.toString() ?? '';
         final type = record['_type'] ?? '';
-        final attend = (record['Attend_flag'] == true || record['Attend_flag'] == 1) ? 'نعم' : 'لا';
-        final absent = (record['Absent_flag'] == true || record['Absent_flag'] == 1) ? 'نعم' : 'لا';
-        final excuse = (record['Execuse_flag'] == true || record['Execuse_flag'] == 1) ? 'نعم' : 'لا';
+        final attend = (record['Attend_flag'] == true || record['Attend_flag'] == 1) ? '✓' : '';
+        final absent = (record['Absent_flag'] == true || record['Absent_flag'] == 1) ? '✓' : '';
+        final excuse = (record['Execuse_flag'] == true || record['Execuse_flag'] == 1) ? '✓' : '';
 
         sheet.appendRow([
           excel_pkg.TextCellValue(date),
@@ -280,6 +325,22 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
           excel_pkg.TextCellValue(excuse),
         ]);
       }
+        // Apply styles to key rows
+        sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0)).cellStyle = titleStyle;
+        sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 2)).cellStyle = headerStyle;
+        sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 3)).cellStyle = headerStyle;
+        sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 3)).cellStyle = headerStyle;
+
+
+
+      // Set column widths
+      sheet.setColumnWidth(0, 15);
+      sheet.setColumnWidth(1, 25);
+      sheet.setColumnWidth(2, 15);
+      sheet.setColumnWidth(3, 15);
+      sheet.setColumnWidth(4, 12);
+      sheet.setColumnWidth(5, 12);
+      sheet.setColumnWidth(6, 12);
 
       final bytes = excel.encode();
       if (bytes != null) {
@@ -306,6 +367,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
     }
   }
 
+  /// Export attendance report to PDF with enhanced Arabic support
   Future<void> _exportToPDF() async {
     if (_reportData.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -315,52 +377,45 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
     }
 
     try {
-      final pdf = pw.Document();
+      // Determine report title based on selected filters
+      final reportTitle = _selectedClassId != null
+          ? 'تقرير الحضور - الفصل المختار'
+          : _selectedTypeId != null
+              ? 'تقرير الحضور - الرواية المختارة'
+              : 'تقرير الحضور الشامل';
 
-      pdf.addPage(
-        pw.MultiPage(
-          build: (context) => [
-            pw.Header(
-              level: 0,
-              child: pw.Text('تقرير الحضور', style: const pw.TextStyle(fontSize: 24)),
-            ),
-            pw.SizedBox(height: 20),
-            pw.TableHelper.fromTextArray(
-              headers: ['التاريخ', 'اسم الطالب', 'رقم الطالب', 'النوع', 'حاضر', 'غائب', 'معتذر'],
-              data: _reportData.map((record) {
-                final date = record['Report_date']?.toString().split('T')[0] ?? '';
-                final studentName = record['Students']?['Student_Name'] ?? '';
-                final studentCode = record['Students']?['Student_Code']?.toString() ?? '';
-                final type = record['_type'] ?? '';
-                final attend = (record['Attend_flag'] == true || record['Attend_flag'] == 1) ? 'نعم' : 'لا';
-                final absent = (record['Absent_flag'] == true || record['Absent_flag'] == 1) ? 'نعم' : 'لا';
-                final excuse = (record['Execuse_flag'] == true || record['Execuse_flag'] == 1) ? 'نعم' : 'لا';
+      // Get department/class name
+      final departmentName = _selectedClassId != null
+          ? 'الفصل: ${_classes.firstWhere((c) => c['id'] == _selectedClassId, orElse: () => {'Class_Number': 'غير محدد'})['Class_Number'] ?? 'غير محدد'}'
+          : 'نظام إدارة الحضور';
 
-                return [date, studentName, studentCode, type, attend, absent, excuse];
-              }).toList(),
-            ),
-          ],
-        ),
+      // Compute statistics
+      final stats = AttendanceExportHelper.computeStats(_reportData);
+
+      // Prepare notes
+      final total = stats['total'] ?? 0;
+      final present = stats['present'] ?? 0;
+      final notes = total > 0
+          ? 'ملخص: حاضرات (${present}), إجمالي (${total}), نسبة الحضور (${((present / total) * 100).toStringAsFixed(1)}%)'
+          : '';
+
+      // Call enhanced export function
+      await AttendanceExportHelper.exportToPDF(
+        reportTitle: reportTitle,
+        departmentName: departmentName,
+        startDate: _startDate ?? DateTime.now(),
+        endDate: _endDate ?? DateTime.now(),
+        attendanceRecords: _reportData,
+        stats: stats,
+        generatedBy: widget.userSession.username ?? 'نظام الإدارة',
+        notes: notes,
+        context: context,
       );
-
-      final bytes = await pdf.save();
-      final blob = html.Blob([Uint8List.fromList(bytes)]);
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      html.AnchorElement(href: url)
-        ..setAttribute('download', 'attendance_report_${DateTime.now().millisecondsSinceEpoch}.pdf')
-        ..click();
-      html.Url.revokeObjectUrl(url);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم تصدير التقرير إلى PDF')),
-        );
-      }
     } catch (e) {
-      debugPrint('Error exporting to PDF: $e');
+      debugPrint('Error in _exportToPDF: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ في التصدير: $e')),
+          SnackBar(content: Text('خطأ: $e')),
         );
       }
     }
