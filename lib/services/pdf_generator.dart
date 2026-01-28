@@ -8,11 +8,11 @@ import 'package:universal_html/html.dart' as html;
 
 /// Enhanced PDF Generator with full Arabic support and professional layout
 class AttendancePdfGenerator {
-  /// Get font for Arabic text - uses Helvetica which renders Arabic acceptably
+  /// Get font for PDF - using Times Roman which has better Unicode support
   static pw.Font loadArabicFont() {
-    // Helvetica supports basic Arabic characters
-    // This is reliable and fast - no network calls needed
-    return pw.Font.helvetica();
+    // Times Roman is more reliable than Helvetica/Courier for Unicode text
+    // This avoids network calls and font loading delays
+    return pw.Font.times();
   }
 
   /// Generate professional attendance report PDF
@@ -203,7 +203,7 @@ class AttendancePdfGenerator {
           mainAxisAlignment: pw.MainAxisAlignment.end,
           children: [
             pw.Text(
-              '${arabicDateFormat.format(DateTime.now())}',
+              arabicDateFormat.format(DateTime.now()),
               style: pw.TextStyle(
                 font: labelStyle.font,
                 fontSize: 10,
