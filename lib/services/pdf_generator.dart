@@ -1,18 +1,21 @@
 import 'dart:typed_data';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:intl/intl.dart';
-import 'package:universal_html/html.dart' as html;
+import 'package:google_fonts/google_fonts.dart';
 
 /// Enhanced PDF Generator with full Arabic support and professional layout
 class AttendancePdfGenerator {
-  /// Get font - using built-in font (no network calls, instant)
-  static pw.Font loadArabicFont() {
-    // Using Times which is most readable. Arabic display quality depends on the font,
-    // but the actual data will be there and searchable in the PDF
-    return pw.Font.times();
+  /// Load Arabic font using Google Fonts - reliable and supports Arabic
+  static Future<pw.Font> loadArabicFont() async {
+    // Using Google Fonts Amiri which has excellent Arabic support
+    // This loads from Google's CDN cache which is fast and reliable
+    final fontData = await GoogleFonts.asMap()['Amiri']!();
+    final bytes = await fontData.bytes;
+    return pw.Font.ttf(bytes.buffer.asByteData());
   }
 
   /// Generate professional attendance report PDF
@@ -30,7 +33,7 @@ class AttendancePdfGenerator {
     String? notes,
   }) async {
     final pdf = pw.Document();
-    final arabicFont = loadArabicFont(); // Synchronous now - no waiting
+    final arabicFont = await loadArabicFont(); // Now async - loads Google Font
 
     // Define text styles
     final titleStyle = pw.TextStyle(
