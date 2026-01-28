@@ -659,22 +659,26 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
       builder: (context, constraints) {
         final isNarrow = constraints.maxWidth < 1100;
         if (isNarrow) {
-          return Column(
-            children: [
-              _buildChartsPanel(stats),
-              const SizedBox(height: 12),
-              Expanded(child: _buildReportTable()),
-            ],
+          return SingleChildScrollView(
+            child: Column(
+              children: [
+                _buildChartsPanel(stats),
+                const SizedBox(height: 12),
+                _buildReportTable(),
+              ],
+            ),
           );
         }
 
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(child: _buildReportTable()),
-            const SizedBox(width: 16),
-            SizedBox(width: 320, child: _buildChartsPanel(stats)),
-          ],
+        return SingleChildScrollView(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: _buildReportTable()),
+              const SizedBox(width: 16),
+              SizedBox(width: 320, child: _buildChartsPanel(stats)),
+            ],
+          ),
         );
       },
     );
