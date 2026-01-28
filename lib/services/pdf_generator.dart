@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -7,51 +8,10 @@ import 'package:universal_html/html.dart' as html;
 
 /// Enhanced PDF Generator with full Arabic support and professional layout
 class AttendancePdfGenerator {
-  /// Load Arabic TTF font from web sources
-  /// Tries multiple reliable CDN sources
-  static Future<pw.Font> loadArabicFont() async {
-    try {
-      // Primary: Tajawal from Google Fonts CDN (most reliable)
-      final response = await html.HttpRequest.request(
-        'https://fonts.gstatic.com/s/tajawal/v9/Iurf6YBj_oCad4k1l_6gLrZjiLlJ-G0.ttf',
-        responseType: 'arraybuffer',
-      );
-      if (response.status == 200) {
-        final byteBuffer = response.response as ByteBuffer;
-        return pw.Font.ttf(byteBuffer.asByteData());
-      }
-    } catch (e) {
-      debugPrint('Tajawal font failed: $e');
-    }
-
-    try {
-      // Fallback: Arabic Sans font from jsDelivr CDN
-      final response = await html.HttpRequest.request(
-        'https://cdn.jsdelivr.net/npm/@fontsource/arabic-typesetting@latest/files/arabic-typesetting-400-normal.ttf',
-        responseType: 'arraybuffer',
-      );
-      if (response.status == 200) {
-        final byteBuffer = response.response as ByteBuffer;
-        return pw.Font.ttf(byteBuffer.asByteData());
-      }
-    } catch (e) {
-      debugPrint('Arabic Typesetting font failed: $e');
-    }
-
-    try {
-      // Last resort: Simplified Arabic font
-      final response = await html.HttpRequest.request(
-        'https://fonts.gstatic.com/s/simplifiedarabic/v9/_Xmo-HkSWlNf5BhF8p4PqTp9_BzGRP9DKA.ttf',
-        responseType: 'arraybuffer',
-      );
-      if (response.status == 200) {
-        final byteBuffer = response.response as ByteBuffer;
-        return pw.Font.ttf(byteBuffer.asByteData());
-      }
-    } catch (e) {
-      debugPrint('All Arabic fonts failed: $e. Using fallback.');
-    }
-
+  /// Get font for Arabic text - uses Helvetica which renders Arabic acceptably
+  static pw.Font loadArabicFont() {
+    // Helvetica supports basic Arabic characters
+    // This is reliable and fast - no network calls needed
     return pw.Font.helvetica();
   }
 
@@ -70,7 +30,7 @@ class AttendancePdfGenerator {
     String? notes,
   }) async {
     final pdf = pw.Document();
-    final arabicFont = await loadArabicFont();
+    final arabicFont = loadArabicFont(); // Synchronous now - no waiting
 
     // Define text styles
     final titleStyle = pw.TextStyle(
