@@ -1,3 +1,4 @@
+/*
 /// EXAMPLE: How to integrate the enhanced PDF export into AttendanceReportScreen
 /// 
 /// This file shows the exact changes needed to your attendance_report_screen.dart
@@ -150,8 +151,7 @@ Future<void> _exportToPDFWithLoadingState() async {
 // COMPLETE EXAMPLE INTEGRATION
 // ============================================================================
 
-/**
-Here's a complete code snippet showing the integration:
+// Here's a complete code snippet showing the integration:
 
 ```dart
 import 'package:flutter/material.dart';

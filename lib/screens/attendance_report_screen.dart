@@ -5,7 +5,6 @@ import '../services/export_helper.dart';
 import 'dart:typed_data';
 import 'package:excel/excel.dart' as excel_pkg;
 import 'package:fl_chart/fl_chart.dart';
-import 'package:pdf/widgets.dart' as pw;
 import 'package:universal_html/html.dart' as html;
 
 class AttendanceReportScreen extends StatefulWidget {
@@ -384,10 +383,47 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
               ? 'تقرير الحضور - الرواية المختارة'
               : 'تقرير الحضور الشامل';
 
-      // Get department/class name
-      final departmentName = _selectedClassId != null
-          ? 'الفصل: ${_classes.firstWhere((c) => c['id'] == _selectedClassId, orElse: () => {'Class_Number': 'غير محدد'})['Class_Number'] ?? 'غير محدد'}'
-          : 'نظام إدارة الحضور';
+      // Header metadata
+      final groupName = _groups
+              .firstWhere((g) => g['id'] == _selectedGroupId, orElse: () => {'Group_Name': 'غير محدد'})['Group_Name']
+              ?.toString() ??
+          'غير محدد';
+      final classNumber = _classes
+              .firstWhere((c) => c['id'] == _selectedClassId, orElse: () => {'Class_Number': 'غير محدد'})['Class_Number']
+              ?.toString() ??
+          'غير محدد';
+      final typeName = _types
+              .firstWhere((t) => t['id'] == _selectedTypeId, orElse: () => {'Type': 'غير محدد'})['Type']
+              ?.toString() ??
+          'غير محدد';
+
+      String supervisorName = 'غير محدد';
+      try {
+        final managerRow = await _client
+            .from('Managers')
+            .select('User_id')
+            .eq('Group_id', _selectedGroupId)
+            .eq('Class_id', _selectedClassId)
+            .eq('Type_id', _selectedTypeId)
+            .limit(1)
+            .maybeSingle();
+
+        final supervisorUserId = managerRow?['User_id'];
+        if (supervisorUserId != null) {
+          final userRow = await _client
+              .from('Users')
+              .select('username')
+              .eq('id', supervisorUserId)
+              .limit(1)
+              .maybeSingle();
+
+          if (userRow != null && userRow['username'] != null) {
+            supervisorName = userRow['username'].toString();
+          }
+        }
+      } catch (e) {
+        debugPrint('Failed to fetch supervisor name: $e');
+      }
 
       // Compute statistics
       final stats = AttendanceExportHelper.computeStats(_reportData);
@@ -402,7 +438,10 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
       // Call enhanced export function
       await AttendanceExportHelper.exportToPDF(
         reportTitle: reportTitle,
-        departmentName: departmentName,
+        groupName: groupName,
+        classNumber: classNumber,
+        typeName: typeName,
+        supervisorName: supervisorName,
         startDate: _startDate ?? DateTime.now(),
         endDate: _endDate ?? DateTime.now(),
         attendanceRecords: _reportData,

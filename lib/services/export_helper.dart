@@ -18,7 +18,10 @@ class AttendanceExportHelper {
   /// - notes: Additional notes or remarks
   static Future<void> exportToPDF({
     required String reportTitle,
-    required String departmentName,
+    required String groupName,
+    required String classNumber,
+    required String typeName,
+    required String supervisorName,
     required DateTime startDate,
     required DateTime endDate,
     required List<Map<String, dynamic>> attendanceRecords,
@@ -41,7 +44,10 @@ class AttendanceExportHelper {
       // Generate PDF
       final pdfBytes = await AttendancePdfGenerator.generateAttendanceReport(
         reportTitle: reportTitle,
-        departmentName: departmentName,
+        groupName: groupName,
+        classNumber: classNumber,
+        typeName: typeName,
+        supervisorName: supervisorName,
         startDate: startDate,
         endDate: endDate,
         attendanceRecords: attendanceRecords,
@@ -83,7 +89,7 @@ class AttendanceExportHelper {
     final blob = html.Blob([bytes], 'application/pdf');
     final url = html.Url.createObjectUrlFromBlob(blob);
 
-    final anchor = html.AnchorElement(href: url)
+    html.AnchorElement(href: url)
       ..setAttribute('download', filename)
       ..click();
 
