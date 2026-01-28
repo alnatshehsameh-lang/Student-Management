@@ -8,10 +8,10 @@ import 'package:universal_html/html.dart' as html;
 
 /// Enhanced PDF Generator with full Arabic support and professional layout
 class AttendancePdfGenerator {
-  /// Get font for PDF - using Times Roman which has better Unicode support
+  /// Get font - using built-in font (no network calls, instant)
   static pw.Font loadArabicFont() {
-    // Times Roman is more reliable than Helvetica/Courier for Unicode text
-    // This avoids network calls and font loading delays
+    // Using Times which is most readable. Arabic display quality depends on the font,
+    // but the actual data will be there and searchable in the PDF
     return pw.Font.times();
   }
 
