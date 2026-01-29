@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_session.dart';
-import '../services/export_helper.dart';
 import 'dart:typed_data';
 import 'package:excel/excel.dart' as excel_pkg;
 import 'package:fl_chart/fl_chart.dart';
@@ -441,100 +440,6 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
     }
   }
 
-  /// Export attendance report to PDF with enhanced Arabic support
-  Future<void> _exportToPDF() async {
-    if (_reportData.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('لا توجد بيانات للتصدير')),
-      );
-      return;
-    }
-
-    try {
-      // Determine report title based on selected filters
-      final reportTitle = _selectedClassId != null
-          ? 'تقرير الحضور - الفصل المختار'
-          : _selectedTypeId != null
-              ? 'تقرير الحضور - الرواية المختارة'
-              : 'تقرير الحضور الشامل';
-
-      // Header metadata
-      final groupName = _groups
-              .firstWhere((g) => g['id'] == _selectedGroupId, orElse: () => {'Group_Name': 'غير محدد'})['Group_Name']
-              ?.toString() ??
-          'غير محدد';
-      final classNumber = _classes
-              .firstWhere((c) => c['id'] == _selectedClassId, orElse: () => {'Class_Number': 'غير محدد'})['Class_Number']
-              ?.toString() ??
-          'غير محدد';
-      final typeName = _types
-              .firstWhere((t) => t['id'] == _selectedTypeId, orElse: () => {'Type': 'غير محدد'})['Type']
-              ?.toString() ??
-          'غير محدد';
-
-      String supervisorName = 'غير محدد';
-      try {
-        final managerRow = await _client
-            .from('Managers')
-            .select('User_id')
-            .eq('Group_id', _selectedGroupId)
-            .eq('Class_id', _selectedClassId)
-            .eq('Type_id', _selectedTypeId)
-            .limit(1)
-            .maybeSingle();
-
-        final supervisorUserId = managerRow?['User_id'];
-        if (supervisorUserId != null) {
-          final userRow = await _client
-              .from('Users')
-              .select('username')
-              .eq('id', supervisorUserId)
-              .limit(1)
-              .maybeSingle();
-
-          if (userRow != null && userRow['username'] != null) {
-            supervisorName = userRow['username'].toString();
-          }
-        }
-      } catch (e) {
-        debugPrint('Failed to fetch supervisor name: $e');
-      }
-
-      // Compute statistics
-      final stats = AttendanceExportHelper.computeStats(_reportData);
-
-      // Prepare notes
-      final total = stats['total'] ?? 0;
-      final present = stats['present'] ?? 0;
-      final notes = total > 0
-          ? 'ملخص: حاضرات ($present), إجمالي ($total), نسبة الحضور (${((present / total) * 100).toStringAsFixed(1)}%)'
-          : '';
-
-      // Call enhanced export function - now exports to Word instead of PDF
-      await AttendanceExportHelper.exportToWord(
-        reportTitle: reportTitle,
-        groupName: groupName,
-        classNumber: classNumber,
-        typeName: typeName,
-        supervisorName: supervisorName,
-        startDate: _startDate ?? DateTime.now(),
-        endDate: _endDate ?? DateTime.now(),
-        attendanceRecords: _reportData,
-        stats: stats,
-        generatedBy: widget.userSession.username ?? 'نظام الإدارة',
-        notes: notes,
-        context: context,
-      );
-    } catch (e) {
-      debugPrint('Error in _exportToPDF: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ: $e')),
-        );
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -547,11 +452,6 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
               icon: const Icon(Icons.table_chart),
               tooltip: 'تصدير Excel',
               onPressed: _exportToExcel,
-            ),
-            IconButton(
-              icon: const Icon(Icons.description),
-              tooltip: 'تصدير Word',
-              onPressed: _exportToPDF,
             ),
           ],
         ],
