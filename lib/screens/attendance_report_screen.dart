@@ -260,10 +260,78 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
         bold: true,
         fontSize: 12,
       );
+      final labelStyle = excel_pkg.CellStyle(
+        bold: true,
+        fontSize: 11,
+      );
       
       // Add title
       sheet.appendRow([
         excel_pkg.TextCellValue('تقرير الحضور'),
+      ]);
+      sheet.appendRow([]); // Empty row
+      
+      // Get header information
+      final groupName = _groups.firstWhere(
+        (g) => g['id'] == _selectedGroupId,
+        orElse: () => {'Group_Name': 'الكل'},
+      )['Group_Name'] ?? 'الكل';
+      
+      final className = _classes.firstWhere(
+        (c) => c['id'] == _selectedClassId,
+        orElse: () => {'Class_Number': 'الكل'},
+      )['Class_Number']?.toString() ?? 'الكل';
+      
+      final typeName = _types.firstWhere(
+        (t) => t['id'] == _selectedTypeId,
+        orElse: () => {'Type': 'الكل'},
+      )['Type'] ?? 'الكل';
+      
+      // Get supervisor name
+      String supervisorName = 'غير محدد';
+      if (_selectedGroupId != null && _selectedClassId != null && _selectedTypeId != null) {
+        try {
+          final managerResult = await _client
+              .from('Managers')
+              .select('User_id, Users!inner(username)')
+              .eq('Group_id', _selectedGroupId!)
+              .eq('Class_id', _selectedClassId!)
+              .eq('Type_id', _selectedTypeId!)
+              .limit(1)
+              .maybeSingle();
+          
+          if (managerResult != null && managerResult['Users'] != null) {
+            supervisorName = managerResult['Users']['username'] ?? 'غير محدد';
+          }
+        } catch (e) {
+          debugPrint('Error fetching supervisor: $e');
+        }
+      }
+      
+      final dateRange = _startDate != null && _endDate != null
+          ? '${_startDate!.year}/${_startDate!.month}/${_startDate!.day} - ${_endDate!.year}/${_endDate!.month}/${_endDate!.day}'
+          : 'الكل';
+      
+      // Add header information
+      sheet.appendRow([
+        excel_pkg.TextCellValue('المجموعة:'),
+        excel_pkg.TextCellValue(groupName),
+      ]);
+      sheet.appendRow([
+        excel_pkg.TextCellValue('الفصل:'),
+        excel_pkg.TextCellValue(className),
+      ]);
+      sheet.appendRow([
+        excel_pkg.TextCellValue('الرواية:'),
+        excel_pkg.TextCellValue(typeName),
+      ]);
+      sheet.appendRow([
+        excel_pkg.TextCellValue('المشرفة:'),
+        excel_pkg.TextCellValue(supervisorName),
+      ]);
+      sheet.appendRow([
+        excel_pkg.TextCellValue('الفترة الزمنية:'),
+        excel_pkg.TextCellValue(dateRange),
       ]);
       sheet.appendRow([]); // Empty row
       
@@ -324,11 +392,18 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
           excel_pkg.TextCellValue(excuse),
         ]);
       }
-        // Apply styles to key rows
+        // Apply styles to key rows - update for new structure
         sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0)).cellStyle = titleStyle;
-        sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 2)).cellStyle = headerStyle;
-        sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 3)).cellStyle = headerStyle;
-        sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 3)).cellStyle = headerStyle;
+        
+        // Header information labels (rows 2-6)
+        for (int i = 2; i <= 6; i++) {
+          sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: i)).cellStyle = labelStyle;
+        }
+        
+        // Summary header (row 8)
+        sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 8)).cellStyle = headerStyle;
+        sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 9)).cellStyle = headerStyle;
+        sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 9)).cellStyle = headerStyle;
 
 
 
@@ -432,11 +507,11 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
       final total = stats['total'] ?? 0;
       final present = stats['present'] ?? 0;
       final notes = total > 0
-          ? 'ملخص: حاضرات (${present}), إجمالي (${total}), نسبة الحضور (${((present / total) * 100).toStringAsFixed(1)}%)'
+          ? 'ملخص: حاضرات ($present), إجمالي ($total), نسبة الحضور (${((present / total) * 100).toStringAsFixed(1)}%)'
           : '';
 
-      // Call enhanced export function
-      await AttendanceExportHelper.exportToPDF(
+      // Call enhanced export function - now exports to Word instead of PDF
+      await AttendanceExportHelper.exportToWord(
         reportTitle: reportTitle,
         groupName: groupName,
         classNumber: classNumber,
@@ -474,8 +549,8 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
               onPressed: _exportToExcel,
             ),
             IconButton(
-              icon: const Icon(Icons.picture_as_pdf),
-              tooltip: 'تصدير PDF',
+              icon: const Icon(Icons.description),
+              tooltip: 'تصدير Word',
               onPressed: _exportToPDF,
             ),
           ],

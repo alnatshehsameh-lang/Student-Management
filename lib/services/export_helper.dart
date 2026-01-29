@@ -1,22 +1,25 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:universal_html/html.dart' as html;
-import 'pdf_generator.dart';
+import 'word_generator.dart';
 
 /// Helper class for exporting attendance reports
 class AttendanceExportHelper {
-  /// Export attendance data to PDF with enhanced formatting
+  /// Export attendance data to Word document with enhanced formatting and full Arabic support
   /// 
   /// Parameters:
   /// - reportTitle: Main title (e.g., "تقرير الحضور الشهري")
-  /// - departmentName: Department/Class name
+  /// - groupName: Group name
+  /// - classNumber: Class number
+  /// - typeName: Type name
+  /// - supervisorName: Supervisor name
   /// - startDate: Report period start
   /// - endDate: Report period end
   /// - attendanceRecords: List of attendance records
   /// - stats: Map with keys: 'present', 'absent', 'excuse', 'total'
   /// - generatedBy: User name who generated the report
   /// - notes: Additional notes or remarks
-  static Future<void> exportToPDF({
+  static Future<void> exportToWord({
     required String reportTitle,
     required String groupName,
     required String classNumber,
@@ -35,14 +38,14 @@ class AttendanceExportHelper {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('جاري إنشاء تقرير PDF...'),
+            content: Text('جاري إنشاء تقرير Word...'),
             duration: Duration(seconds: 2),
           ),
         );
       }
 
-      // Generate PDF
-      final pdfBytes = await AttendancePdfGenerator.generateAttendanceReport(
+      // Generate Word document
+      final docxBytes = await AttendanceWordGenerator.generateAttendanceReport(
         reportTitle: reportTitle,
         groupName: groupName,
         classNumber: classNumber,
@@ -56,8 +59,8 @@ class AttendanceExportHelper {
         notes: notes,
       );
 
-      // Download/save PDF
-      _downloadPDF(pdfBytes, reportTitle);
+      // Download/save Word document
+      _downloadWord(docxBytes, reportTitle);
 
       // Show success message
       if (context.mounted) {
@@ -69,7 +72,7 @@ class AttendanceExportHelper {
         );
       }
     } catch (e) {
-      debugPrint('Error exporting PDF: $e');
+      debugPrint('Error exporting Word: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -81,12 +84,12 @@ class AttendanceExportHelper {
     }
   }
 
-  /// Download PDF file
-  static void _downloadPDF(Uint8List bytes, String reportTitle) {
+  /// Download Word document file
+  static void _downloadWord(Uint8List bytes, String reportTitle) {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final filename = '${reportTitle}_$timestamp.pdf';
+    final filename = '${reportTitle}_$timestamp.docx';
 
-    final blob = html.Blob([bytes], 'application/pdf');
+    final blob = html.Blob([bytes], 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
     final url = html.Url.createObjectUrlFromBlob(blob);
 
     html.AnchorElement(href: url)
