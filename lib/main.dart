@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'screens/students_screen.dart';
 import 'screens/attendance_report_screen.dart';
+import 'screens/supervisors_screen.dart';
 import 'models/user_session.dart';
 
 void main() async {
@@ -303,6 +304,8 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    final loginCardWidth = media.size.width < 420 ? media.size.width - 24 : 370.0;
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Container(
@@ -313,10 +316,12 @@ class _LoginPageState extends State<LoginPage> {
             end: Alignment.bottomRight,
           ),
         ),
-        child: Center(
-          child: SingleChildScrollView(
-            child: Container(
-              padding: const EdgeInsets.all(28),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(12),
+              child: Container(
+              padding: EdgeInsets.all(media.size.width < 420 ? 20 : 28),
               decoration: BoxDecoration(
                 color: Colors.white.withAlpha((0.92 * 255).round()),
                 borderRadius: BorderRadius.circular(24),
@@ -328,7 +333,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ],
               ),
-              width: 370,
+              width: loginCardWidth,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -412,6 +417,7 @@ class _LoginPageState extends State<LoginPage> {
                 ],
               ),
             ),
+            ),
           ),
         ),
       ),
@@ -484,8 +490,16 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       body: Directionality(
         textDirection: TextDirection.rtl,
-        child: Row(
-          children: [
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final minWidth = constraints.maxWidth < 1100 ? 1100.0 : constraints.maxWidth;
+            final contentWidth = (minWidth - 280).clamp(320.0, 2400.0);
+            return SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minWidth: minWidth),
+                child: Row(
+                  children: [
             // Left Sidebar
             Container(
               width: 280,
@@ -584,7 +598,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         _NavItem(
                           icon: Icons.supervisor_account,
                           label: 'المشرفات',
-                          onTap: () {},
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => SupervisorsScreen(userSession: widget.userSession),
+                              ),
+                            );
+                          },
                         ),
                         const SizedBox(height: 4),
                         const Padding(
@@ -650,7 +671,8 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             // Main content area
-            Expanded(
+            SizedBox(
+              width: contentWidth,
               child: Container(
                 color: const Color(0xFFF8FAFC),
                 child: Column(
@@ -757,6 +779,10 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ],
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -833,7 +859,7 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -851,12 +877,12 @@ class _StatCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: color,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(icon, size: 24, color: iconColor),
+                child: Icon(icon, size: 22, color: iconColor),
               ),
             ],
           ),
@@ -1004,14 +1030,14 @@ class _GroupsScreenState extends State<GroupsScreen> {
           padding: const EdgeInsets.all(12.0),
           child: _loading
               ? const Center(child: CircularProgressIndicator())
-              : Scrollbar(
-                  child: SingleChildScrollView(
-                    child: Column(
+              : Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                     // horizontal list of group cards (with counts and selected highlight)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         const Text('الحضور', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                         if (_selectedGroupId != null)
@@ -1084,7 +1110,9 @@ class _GroupsScreenState extends State<GroupsScreen> {
                     ),
                     const SizedBox(height: 16),
                     // Report date selector (above the chips/table)
-                    Row(
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
                         const Text('تاريخ التقرير', style: TextStyle(fontWeight: FontWeight.w600)),
@@ -1134,6 +1162,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
                         const SizedBox(width: 8),
                         if (_hasUnsavedChanges) const Text('غير محفوظة', style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
                       ],
+                    ),
                     ),
                     // types list for selected group and (later) students table
                     Expanded(
@@ -1377,8 +1406,6 @@ class _GroupsScreenState extends State<GroupsScreen> {
                             ),
                     ),
                   ],
-                ),
-                  ),
                 ),
         ),
       ),

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_session.dart';
+import '../widgets/responsive_table_container.dart';
 
 class StudentsScreen extends StatefulWidget {
   // allow injecting a SupabaseClient for tests
@@ -766,6 +767,8 @@ class _StudentsScreenState extends State<StudentsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    final isNarrow = media.size.width < 950;
     return Scaffold(
       appBar: AppBar(
         title: const Text('الطلاب'),
@@ -780,92 +783,115 @@ class _StudentsScreenState extends State<StudentsScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child: Row(
-              children: [
-                // Type filter
-                Expanded(
-                  child: DropdownButtonFormField<dynamic>(
-                    initialValue: _filterType,
-                    items: [DropdownMenuItem<dynamic>(value: null, child: Text('All'))]
-                        .followedBy(_typeOptions.map((t) {
-                      final display = _typesMap[t] ?? (t?.toString() ?? '');
-                      return DropdownMenuItem(value: t, child: Text(display));
-                    })).toList(),
-                    onChanged: _lookupsLoading ? null : (v) => setState(() => _filterType = v),
-                    decoration: InputDecoration(
-                      labelText: 'الرواية',
-                      suffixIcon: _lookupsLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : null,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final compact = constraints.maxWidth < 950;
+                final fields = [
+                  SizedBox(
+                    width: compact ? double.infinity : 170,
+                    child: DropdownButtonFormField<dynamic>(
+                      initialValue: _filterType,
+                      items: [DropdownMenuItem<dynamic>(value: null, child: Text('All'))]
+                          .followedBy(_typeOptions.map((t) {
+                        final display = _typesMap[t] ?? (t?.toString() ?? '');
+                        return DropdownMenuItem(value: t, child: Text(display));
+                      })).toList(),
+                      onChanged: _lookupsLoading ? null : (v) => setState(() => _filterType = v),
+                      decoration: InputDecoration(
+                        labelText: 'الرواية',
+                        suffixIcon: _lookupsLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : null,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                // Class number filter
-                Expanded(
-                  child: DropdownButtonFormField<dynamic>(
-                    initialValue: _filterClassNumber,
-                    items: [DropdownMenuItem<dynamic>(value: null, child: Text('All'))]
-                        .followedBy(_classOptions.map((t) {
-                      final display = _classesMap[t] ?? (t?.toString() ?? '');
-                      return DropdownMenuItem(value: t, child: Text(display));
-                    })).toList(),
-                    onChanged: _lookupsLoading ? null : (v) => setState(() => _filterClassNumber = v),
-                    decoration: InputDecoration(
-                      labelText: 'الحلقة',
-                      suffixIcon: _lookupsLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : null,
+                  SizedBox(
+                    width: compact ? double.infinity : 170,
+                    child: DropdownButtonFormField<dynamic>(
+                      initialValue: _filterClassNumber,
+                      items: [DropdownMenuItem<dynamic>(value: null, child: Text('All'))]
+                          .followedBy(_classOptions.map((t) {
+                        final display = _classesMap[t] ?? (t?.toString() ?? '');
+                        return DropdownMenuItem(value: t, child: Text(display));
+                      })).toList(),
+                      onChanged: _lookupsLoading ? null : (v) => setState(() => _filterClassNumber = v),
+                      decoration: InputDecoration(
+                        labelText: 'الحلقة',
+                        suffixIcon: _lookupsLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : null,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                // Group filter
-                Expanded(
-                  child: DropdownButtonFormField<dynamic>(
-                    initialValue: _filterClass,
-                    items: [DropdownMenuItem<dynamic>(value: null, child: Text('All'))]
-                        .followedBy(_groupOptions.map((t) {
-                      final display = _groupsMap[t] ?? (t?.toString() ?? '');
-                      return DropdownMenuItem(value: t, child: Text(display));
-                    })).toList(),
-                    onChanged: _lookupsLoading ? null : (v) => setState(() => _filterClass = v),
-                    decoration: InputDecoration(
-                      labelText: 'المجموعة',
-                      suffixIcon: _lookupsLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : null,
+                  SizedBox(
+                    width: compact ? double.infinity : 170,
+                    child: DropdownButtonFormField<dynamic>(
+                      initialValue: _filterClass,
+                      items: [DropdownMenuItem<dynamic>(value: null, child: Text('All'))]
+                          .followedBy(_groupOptions.map((t) {
+                        final display = _groupsMap[t] ?? (t?.toString() ?? '');
+                        return DropdownMenuItem(value: t, child: Text(display));
+                      })).toList(),
+                      onChanged: _lookupsLoading ? null : (v) => setState(() => _filterClass = v),
+                      decoration: InputDecoration(
+                        labelText: 'المجموعة',
+                        suffixIcon: _lookupsLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : null,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                // name search
-                Expanded(
-                  child: TextField(
-                    decoration: const InputDecoration(labelText: 'Search name'),
-                    onChanged: _onSearchNameChanged,
+                  SizedBox(
+                    width: compact ? double.infinity : 220,
+                    child: TextField(
+                      decoration: const InputDecoration(labelText: 'Search name'),
+                      onChanged: _onSearchNameChanged,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(onPressed: () {
-                  setState(() {
-                    _pageIndex = 0;
-                    _pageCache.clear();
-                    _pageHasNext.clear();
-                  });
-                  _fetchStudents();
-                }, child: const Text('بحث')),
-                const SizedBox(width: 8),
-                TextButton(
-                  onPressed: () {
-                    setState(() {
-                      _filterType = null;
-                      _filterClassNumber = null;
-                      _filterClass = null;
-                      _searchName = null;
-                      _pageIndex = 0;
-                      _pageCache.clear();
-                      _pageHasNext.clear();
-                    });
-                    _fetchStudents();
-                  },
-                  child: const Text('مسح'),
-                ),
-              ],
+                ];
+
+                final actions = [
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _pageIndex = 0;
+                        _pageCache.clear();
+                        _pageHasNext.clear();
+                      });
+                      _fetchStudents();
+                    },
+                    child: const Text('بحث'),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _filterType = null;
+                        _filterClassNumber = null;
+                        _filterClass = null;
+                        _searchName = null;
+                        _pageIndex = 0;
+                        _pageCache.clear();
+                        _pageHasNext.clear();
+                      });
+                      _fetchStudents();
+                    },
+                    child: const Text('مسح'),
+                  ),
+                ];
+
+                if (compact) {
+                  return Column(
+                    children: [
+                      ...fields.map((w) => Padding(padding: const EdgeInsets.only(bottom: 8), child: w)),
+                      Row(children: actions.map((w) => Padding(padding: const EdgeInsetsDirectional.only(end: 8), child: w)).toList()),
+                    ],
+                  );
+                }
+
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      ...fields.map((w) => Padding(padding: const EdgeInsetsDirectional.only(end: 8), child: w)),
+                      ...actions.map((w) => Padding(padding: const EdgeInsetsDirectional.only(end: 8), child: w)),
+                    ],
+                  ),
+                );
+              },
             ),
           ),
           Expanded(
@@ -873,43 +899,56 @@ class _StudentsScreenState extends State<StudentsScreen> {
                 ? const Center(child: CircularProgressIndicator())
                 : _rows.isEmpty
                     ? const Center(child: Text('لا توجد سجلات'))
-                    : SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.vertical,
-                          child: StudentsTable(
-                            rows: _rows,
-                            onView: _showRowDetails,
-                            onEdit: _showEditDialog,
-                            onDelete: _deleteRow,
-                            groupsMap: _groupsMap.isNotEmpty ? _groupsMap : null,
-                            typesMap: _typesMap.isNotEmpty ? _typesMap : null,
-                            classesMap: _classesMap.isNotEmpty ? _classesMap : null,
-                          ),
+                    : ResponsiveTableContainer(
+                        thumbVisibility: isNarrow,
+                        child: StudentsTable(
+                          rows: _rows,
+                          onView: _showRowDetails,
+                          onEdit: _showEditDialog,
+                          onDelete: _deleteRow,
+                          groupsMap: _groupsMap.isNotEmpty ? _groupsMap : null,
+                          typesMap: _typesMap.isNotEmpty ? _typesMap : null,
+                          classesMap: _classesMap.isNotEmpty ? _classesMap : null,
                         ),
                       ),
           ),
           // pagination controls
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Builder(builder: (_) {
-                  final start = _pageIndex * _limit;
-                  final end = start + _rows.length;
-                  final canPrev = _pageIndex > 0;
-                  final canNext = _pageHasNext[_pageIndex] ?? false;
-                  return Row(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final compact = constraints.maxWidth < 700;
+                final start = _pageIndex * _limit;
+                final end = start + _rows.length;
+                final canPrev = _pageIndex > 0;
+                final canNext = _pageHasNext[_pageIndex] ?? false;
+
+                final controls = Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(onPressed: canPrev ? _prevPage : null, icon: const Icon(Icons.chevron_left)),
+                    IconButton(onPressed: canNext ? _nextPage : null, icon: const Icon(Icons.chevron_right)),
+                  ],
+                );
+
+                if (compact) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(_totalRows > 0 ? 'Showing ${start + 1} - $end of $_totalRows' : 'Showing ${start + 1} - $end'),
-                      const SizedBox(width: 12),
-                      IconButton(onPressed: canPrev ? _prevPage : null, icon: const Icon(Icons.chevron_left)),
-                      IconButton(onPressed: canNext ? _nextPage : null, icon: const Icon(Icons.chevron_right)),
+                      controls,
                     ],
                   );
-                })
-              ],
+                }
+
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(_totalRows > 0 ? 'Showing ${start + 1} - $end of $_totalRows' : 'Showing ${start + 1} - $end'),
+                    controls,
+                  ],
+                );
+              },
             ),
           )
         ],
@@ -1201,13 +1240,10 @@ class StudentsTable extends StatelessWidget {
     _dummyContext = context;
     return Directionality(
       textDirection: TextDirection.rtl,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: DataTable(
-          columns: _buildColumns(),
-          rows: _buildRows(),
-          columnSpacing: 24,
-        ),
+      child: DataTable(
+        columns: _buildColumns(),
+        rows: _buildRows(),
+        columnSpacing: 24,
       ),
     );
   }

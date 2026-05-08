@@ -189,11 +189,14 @@ class _ManageWeeklyLinksScreenState extends State<ManageWeeklyLinksScreen> {
       ),
       body: Directionality(
         textDirection: TextDirection.rtl,
-        child: Column(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isCompact = constraints.maxWidth < 700;
+            return Column(
           children: [
             // Week Selector
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(isCompact ? 12 : 16),
               color: Colors.grey[100],
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -273,9 +276,11 @@ class _ManageWeeklyLinksScreenState extends State<ManageWeeklyLinksScreen> {
             // Generated Links List
             if (_generatedLinks.isNotEmpty) ...[
               Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                padding: EdgeInsets.all(isCompact ? 12 : 16),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.spaceBetween,
                   children: [
                     Text(
                       'تم إنشاء ${_generatedLinks.length} رابط',
@@ -294,7 +299,7 @@ class _ManageWeeklyLinksScreenState extends State<ManageWeeklyLinksScreen> {
               ),
               Expanded(
                 child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: EdgeInsets.symmetric(horizontal: isCompact ? 12 : 16),
                   itemCount: _generatedLinks.length,
                   itemBuilder: (context, index) {
                     final link = _generatedLinks[index];
@@ -352,19 +357,16 @@ class _ManageWeeklyLinksScreenState extends State<ManageWeeklyLinksScreen> {
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(color: Colors.blue[200]!),
                               ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      link['link'],
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.blue,
-                                        fontFamily: 'monospace',
-                                      ),
-                                    ),
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: Text(
+                                  link['link'],
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.blue,
+                                    fontFamily: 'monospace',
                                   ),
-                                ],
+                                ),
                               ),
                             ),
                             const SizedBox(height: 12),
@@ -418,6 +420,8 @@ class _ManageWeeklyLinksScreenState extends State<ManageWeeklyLinksScreen> {
                 ),
               ),
           ],
+            );
+          },
         ),
       ),
     );

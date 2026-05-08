@@ -452,11 +452,13 @@ class _WeeklyWerdSubmissionScreenState extends State<WeeklyWerdSubmissionScreen>
   }
 
   Widget _buildFormView() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isCompact = screenWidth < 640;
     return Column(
       children: [
         // Header with student info and progress
         Container(
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.all(isCompact ? 14 : 20),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
@@ -475,16 +477,18 @@ class _WeeklyWerdSubmissionScreenState extends State<WeeklyWerdSubmissionScreen>
               children: [
                 Text(
                   'مرحباً ${_student?['Student_Name'] ?? ''} (${_student?['Student_Code'] ?? ''}),',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
-                    fontSize: 24,
+                    fontSize: isCompact ? 18 : 24,
                     fontWeight: FontWeight.bold,
                   ),
+                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'الأسبوع: ${_submission?['week_start_date']} - ${_submission?['week_end_date']}',
                   style: const TextStyle(color: Colors.white70),
+                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
                 // Progress Circle
@@ -599,39 +603,76 @@ class _WeeklyWerdSubmissionScreenState extends State<WeeklyWerdSubmissionScreen>
                       ),
                       const SizedBox(height: 16),
                       // Status Options
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildStatusButton(
-                              itemId: itemId,
-                              status: 'completed',
-                              label: 'مكتمل',
-                              icon: Icons.check_circle,
-                              color: Colors.green,
+                      isCompact
+                          ? Column(
+                              children: [
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: _buildStatusButton(
+                                    itemId: itemId,
+                                    status: 'completed',
+                                    label: 'مكتمل',
+                                    icon: Icons.check_circle,
+                                    color: Colors.green,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: _buildStatusButton(
+                                    itemId: itemId,
+                                    status: 'partially',
+                                    label: 'جزئياً',
+                                    icon: Icons.pending,
+                                    color: Colors.orange,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: _buildStatusButton(
+                                    itemId: itemId,
+                                    status: 'not_done',
+                                    label: 'لم يتم',
+                                    icon: Icons.cancel,
+                                    color: Colors.red,
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Row(
+                              children: [
+                                Expanded(
+                                  child: _buildStatusButton(
+                                    itemId: itemId,
+                                    status: 'completed',
+                                    label: 'مكتمل',
+                                    icon: Icons.check_circle,
+                                    color: Colors.green,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: _buildStatusButton(
+                                    itemId: itemId,
+                                    status: 'partially',
+                                    label: 'جزئياً',
+                                    icon: Icons.pending,
+                                    color: Colors.orange,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: _buildStatusButton(
+                                    itemId: itemId,
+                                    status: 'not_done',
+                                    label: 'لم يتم',
+                                    icon: Icons.cancel,
+                                    color: Colors.red,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: _buildStatusButton(
-                              itemId: itemId,
-                              status: 'partially',
-                              label: 'جزئياً',
-                              icon: Icons.pending,
-                              color: Colors.orange,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: _buildStatusButton(
-                              itemId: itemId,
-                              status: 'not_done',
-                              label: 'لم يتم',
-                              icon: Icons.cancel,
-                              color: Colors.red,
-                            ),
-                          ),
-                        ],
-                      ),
                       const SizedBox(height: 12),
                       // Comment Field
                       TextField(

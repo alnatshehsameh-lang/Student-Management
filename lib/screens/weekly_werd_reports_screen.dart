@@ -96,9 +96,13 @@ class _WeeklyWerdReportsScreenState extends State<WeeklyWerdReportsScreen> {
     final responses = submission['checklist_responses'] as List;
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) {
+        final width = MediaQuery.of(context).size.width;
+        return AlertDialog(
         title: Text('تفاصيل الورد الأسبوعي'),
-        content: SingleChildScrollView(
+        content: SizedBox(
+          width: width < 640 ? width - 48 : 560,
+          child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -136,10 +140,12 @@ class _WeeklyWerdReportsScreenState extends State<WeeklyWerdReportsScreen> {
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 4),
-                      Row(
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           Icon(statusIcon, color: statusColor, size: 20),
-                          const SizedBox(width: 8),
                           Text(
                             statusText,
                             style: TextStyle(color: statusColor),
@@ -164,13 +170,15 @@ class _WeeklyWerdReportsScreenState extends State<WeeklyWerdReportsScreen> {
             ],
           ),
         ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('إغلاق'),
           ),
         ],
-      ),
+      );
+      },
     );
   }
 
@@ -188,7 +196,10 @@ class _WeeklyWerdReportsScreenState extends State<WeeklyWerdReportsScreen> {
       ),
       body: Directionality(
         textDirection: TextDirection.rtl,
-        child: _loading
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isCompact = constraints.maxWidth < 700;
+            return _loading
             ? const Center(child: CircularProgressIndicator())
             : _submissions.isEmpty
                 ? const Center(
@@ -205,7 +216,7 @@ class _WeeklyWerdReportsScreenState extends State<WeeklyWerdReportsScreen> {
                     ),
                   )
                 : ListView.builder(
-                    padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(isCompact ? 12 : 16),
                     itemCount: _submissions.length,
                     itemBuilder: (context, index) {
                       final submission = _submissions[index];
@@ -265,7 +276,7 @@ class _WeeklyWerdReportsScreenState extends State<WeeklyWerdReportsScreen> {
                                         ],
                                       ),
                                     ),
-                                    const Icon(Icons.chevron_left),
+                                    if (!isCompact) const Icon(Icons.chevron_left),
                                   ],
                                 ),
                                 const SizedBox(height: 12),
@@ -295,6 +306,8 @@ class _WeeklyWerdReportsScreenState extends State<WeeklyWerdReportsScreen> {
                       );
                     },
                   ),
+          },
+        ),
       ),
     );
   }

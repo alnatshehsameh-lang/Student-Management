@@ -6,6 +6,7 @@ import 'package:excel/excel.dart' as excel_pkg;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:universal_html/html.dart' as html;
+import '../widgets/responsive_table_container.dart';
 
 class AttendanceReportScreenNew extends StatefulWidget {
   final UserSession userSession;
@@ -652,44 +653,43 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
   }
 
   Widget _buildReportTable() {
-    return SingleChildScrollView(
+    return Padding(
       padding: const EdgeInsets.all(16),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
+      child: ResponsiveTableContainer(
         child: DataTable(
-          headingRowColor: WidgetStateProperty.all(const Color(0xFF6366F1).withOpacity(0.1)),
-          columnSpacing: 24,
-          columns: const [
-            DataColumn(label: Text('التاريخ', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('اسم الطالب', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('رقم الطالب', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('النوع', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('حاضر', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('غائب', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('معتذر', style: TextStyle(fontWeight: FontWeight.bold))),
-          ],
-          rows: _reportData.map((record) {
-            final date = record['Report_date']?.toString().split('T')[0] ?? '';
-            final studentName = record['Students']?['Student_Name'] ?? '';
-            final studentCode = record['Students']?['Student_Code']?.toString() ?? '';
-            final type = record['_type'] ?? '';
-            final attend = record['Attend_flag'] == true || record['Attend_flag'] == 1;
-            final absent = record['Absent_flag'] == true || record['Absent_flag'] == 1;
-            final excuse = record['Execuse_flag'] == true || record['Execuse_flag'] == 1;
+                    headingRowColor: WidgetStateProperty.all(const Color(0xFF6366F1).withOpacity(0.1)),
+                    columnSpacing: 24,
+                    columns: const [
+                      DataColumn(label: Text('التاريخ', style: TextStyle(fontWeight: FontWeight.bold))),
+                      DataColumn(label: Text('اسم الطالب', style: TextStyle(fontWeight: FontWeight.bold))),
+                      DataColumn(label: Text('رقم الطالب', style: TextStyle(fontWeight: FontWeight.bold))),
+                      DataColumn(label: Text('النوع', style: TextStyle(fontWeight: FontWeight.bold))),
+                      DataColumn(label: Text('حاضر', style: TextStyle(fontWeight: FontWeight.bold))),
+                      DataColumn(label: Text('غائب', style: TextStyle(fontWeight: FontWeight.bold))),
+                      DataColumn(label: Text('معتذر', style: TextStyle(fontWeight: FontWeight.bold))),
+                    ],
+                    rows: _reportData.map((record) {
+                      final date = record['Report_date']?.toString().split('T')[0] ?? '';
+                      final studentName = record['Students']?['Student_Name'] ?? '';
+                      final studentCode = record['Students']?['Student_Code']?.toString() ?? '';
+                      final type = record['_type'] ?? '';
+                      final attend = record['Attend_flag'] == true || record['Attend_flag'] == 1;
+                      final absent = record['Absent_flag'] == true || record['Absent_flag'] == 1;
+                      final excuse = record['Execuse_flag'] == true || record['Execuse_flag'] == 1;
 
-            return DataRow(
-              cells: [
-                DataCell(Text(date)),
-                DataCell(Text(studentName)),
-                DataCell(Text(studentCode)),
-                DataCell(Text(type)),
-                DataCell(Icon(attend ? Icons.check_circle : Icons.remove_circle_outline, color: attend ? Colors.green : Colors.grey, size: 20)),
-                DataCell(Icon(absent ? Icons.check_circle : Icons.remove_circle_outline, color: absent ? Colors.red : Colors.grey, size: 20)),
-                DataCell(Icon(excuse ? Icons.check_circle : Icons.remove_circle_outline, color: excuse ? Colors.orange : Colors.grey, size: 20)),
-              ],
-            );
-          }).toList(),
-        ),
+                      return DataRow(
+                        cells: [
+                          DataCell(Text(date)),
+                          DataCell(Text(studentName)),
+                          DataCell(Text(studentCode)),
+                          DataCell(Text(type)),
+                          DataCell(Icon(attend ? Icons.check_circle : Icons.remove_circle_outline, color: attend ? Colors.green : Colors.grey, size: 20)),
+                          DataCell(Icon(absent ? Icons.check_circle : Icons.remove_circle_outline, color: absent ? Colors.red : Colors.grey, size: 20)),
+                          DataCell(Icon(excuse ? Icons.check_circle : Icons.remove_circle_outline, color: excuse ? Colors.orange : Colors.grey, size: 20)),
+                        ],
+                      );
+                    }).toList(),
+                  ),
       ),
     );
   }
