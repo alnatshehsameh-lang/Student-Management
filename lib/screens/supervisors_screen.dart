@@ -138,7 +138,7 @@ class _SupervisorsScreenState extends State<SupervisorsScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       DropdownButtonFormField<int>(
-                        value: selectedUserId,
+                        initialValue: selectedUserId,
                         decoration: const InputDecoration(labelText: 'اسم المستخدم (من جدول Users)'),
                         items: _users
                             .map(
@@ -183,7 +183,7 @@ class _SupervisorsScreenState extends State<SupervisorsScreen> {
                       ),
                       const SizedBox(height: 10),
                       DropdownButtonFormField<String>(
-                        value: managerType,
+                        initialValue: managerType,
                         decoration: const InputDecoration(labelText: 'نوع السجل في Managers'),
                         items: const [
                           DropdownMenuItem(value: 'supervisor', child: Text('supervisor')),
@@ -202,7 +202,7 @@ class _SupervisorsScreenState extends State<SupervisorsScreen> {
                       ),
                       const SizedBox(height: 14),
                       DropdownButtonFormField<int?>(
-                        value: selectedClassId,
+                        initialValue: selectedClassId,
                         decoration: const InputDecoration(labelText: 'الحلقة (اختياري)'),
                         items: [
                           const DropdownMenuItem<int?>(value: null, child: Text('غير محدد')),
@@ -217,7 +217,7 @@ class _SupervisorsScreenState extends State<SupervisorsScreen> {
                       ),
                       const SizedBox(height: 10),
                       DropdownButtonFormField<int?>(
-                        value: selectedGroupId,
+                        initialValue: selectedGroupId,
                         decoration: const InputDecoration(labelText: 'المجموعة (اختياري)'),
                         items: [
                           const DropdownMenuItem<int?>(value: null, child: Text('غير محدد')),
@@ -232,7 +232,7 @@ class _SupervisorsScreenState extends State<SupervisorsScreen> {
                       ),
                       const SizedBox(height: 10),
                       DropdownButtonFormField<int?>(
-                        value: selectedTypeId,
+                        initialValue: selectedTypeId,
                         decoration: const InputDecoration(labelText: 'الرواية (اختياري)'),
                         items: [
                           const DropdownMenuItem<int?>(value: null, child: Text('غير محدد')),
