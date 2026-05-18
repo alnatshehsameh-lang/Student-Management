@@ -17,6 +17,6 @@ docker run --rm -p 8080:80 test-application-web
 ```
 
 Notes:
-- The Dockerfile uses `cirrusci/flutter:stable` to build the Flutter web app and serves using `nginx`.
-- If Render's build environment lacks required tooling, Docker ensures reproducible builds.
-- If you prefer Render Static Site, you must build `flutter build web` locally and push `build/web` as the static publish directory.
+- The Dockerfile now uses a multi-stage build: Flutter compiles the web app from source, then nginx serves the generated files.
+- You do not need to commit `build/web` for Docker-based Render deployments.
+- If you prefer Render Static Site (non-Docker), then you must build `flutter build web` and configure a publish directory.
