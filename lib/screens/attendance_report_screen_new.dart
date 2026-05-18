@@ -7,13 +7,15 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:universal_html/html.dart' as html;
 import '../widgets/responsive_table_container.dart';
+import '../widgets/searchable_lov_field.dart';
 
 class AttendanceReportScreenNew extends StatefulWidget {
   final UserSession userSession;
   const AttendanceReportScreenNew({super.key, required this.userSession});
 
   @override
-  State<AttendanceReportScreenNew> createState() => _AttendanceReportScreenNewState();
+  State<AttendanceReportScreenNew> createState() =>
+      _AttendanceReportScreenNewState();
 }
 
 class _AttendanceStats {
@@ -21,31 +23,35 @@ class _AttendanceStats {
   final int absent;
   final int excuse;
 
-  const _AttendanceStats({required this.attend, required this.absent, required this.excuse});
+  const _AttendanceStats({
+    required this.attend,
+    required this.absent,
+    required this.excuse,
+  });
 
   int get total => attend + absent + excuse;
 }
 
 class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
   final _client = Supabase.instance.client;
-  
+
   // Filters
   dynamic _selectedGroupId;
   dynamic _selectedTypeId;
   dynamic _selectedClassId;
   DateTime? _startDate;
   DateTime? _endDate;
-  
+
   // Dropdown options
   List<Map<String, dynamic>> _groups = [];
   List<Map<String, dynamic>> _types = [];
   List<Map<String, dynamic>> _classes = [];
-  
+
   // Report data
   List<Map<String, dynamic>> _reportData = [];
   bool _loading = false;
   bool _filtersLoading = true;
-  
+
   // User restrictions
   int? _userGroupId;
   int? _userTypeId;
@@ -81,7 +87,7 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
     } catch (e) {
       debugPrint('Failed to fetch restrictions: $e');
     }
-    
+
     if (mounted) _loadFilterOptions();
   }
 
@@ -126,7 +132,9 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
   }
 
   Future<void> _generateReport() async {
-    if (_selectedGroupId == null || _selectedTypeId == null || _selectedClassId == null) {
+    if (_selectedGroupId == null ||
+        _selectedTypeId == null ||
+        _selectedClassId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('يرجى اختيار جميع المرشحات')),
       );
@@ -134,9 +142,9 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
     }
 
     if (_startDate == null || _endDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى اختيار نطاق التاريخ')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('يرجى اختيار نطاق التاريخ')));
       return;
     }
 
@@ -160,9 +168,9 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
       if (students.isEmpty) {
         if (mounted) {
           setState(() => _loading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('لا توجد طلاب مطابقين')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('لا توجد طلاب مطابقين')));
         }
         return;
       }
@@ -219,8 +227,10 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
 
       // Sort by date descending
       combined.sort((a, b) {
-        final dateA = DateTime.tryParse(a['Report_date'].toString()) ?? DateTime(2000);
-        final dateB = DateTime.tryParse(b['Report_date'].toString()) ?? DateTime(2000);
+        final dateA =
+            DateTime.tryParse(a['Report_date'].toString()) ?? DateTime(2000);
+        final dateB =
+            DateTime.tryParse(b['Report_date'].toString()) ?? DateTime(2000);
         return dateB.compareTo(dateA);
       });
 
@@ -229,7 +239,7 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
           _reportData = combined;
           _loading = false;
         });
-        
+
         if (combined.isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('لا توجد سجلات حضور للفترة المحددة')),
@@ -239,9 +249,9 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
     } catch (e) {
       debugPrint('Error generating report: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('خطأ: $e')));
         setState(() => _loading = false);
       }
     }
@@ -249,9 +259,9 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
 
   Future<void> _exportToExcel() async {
     if (_reportData.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('لا توجد بيانات للتصدير')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('لا توجد بيانات للتصدير')));
       return;
     }
 
@@ -260,32 +270,25 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
       final sheet = excel['تقرير_الحضور'];
 
       // Simple styles for better visual hierarchy
-      final titleStyle = excel_pkg.CellStyle(
-        bold: true,
-        fontSize: 14,
-      );
-      final headerStyle = excel_pkg.CellStyle(
-        bold: true,
-        fontSize: 12,
-      );
-      
+      final titleStyle = excel_pkg.CellStyle(bold: true, fontSize: 14);
+      final headerStyle = excel_pkg.CellStyle(bold: true, fontSize: 12);
+
       // Add title
-      sheet.appendRow([
-        excel_pkg.TextCellValue('تقرير الحضور'),
-      ]);
+      sheet.appendRow([excel_pkg.TextCellValue('تقرير الحضور')]);
       sheet.appendRow([]); // Empty row
-      
+
       // Add statistics summary (compute stats from report data)
       var attend = 0, absent = 0, excuse = 0;
       for (final record in _reportData) {
-        if (record['Attend_flag'] == true || record['Attend_flag'] == 1) attend++;
-        if (record['Absent_flag'] == true || record['Absent_flag'] == 1) absent++;
-        if (record['Execuse_flag'] == true || record['Execuse_flag'] == 1) excuse++;
+        if (record['Attend_flag'] == true || record['Attend_flag'] == 1)
+          attend++;
+        if (record['Absent_flag'] == true || record['Absent_flag'] == 1)
+          absent++;
+        if (record['Execuse_flag'] == true || record['Execuse_flag'] == 1)
+          excuse++;
       }
-      
-      sheet.appendRow([
-        excel_pkg.TextCellValue('ملخص الإحصائيات'),
-      ]);
+
+      sheet.appendRow([excel_pkg.TextCellValue('ملخص الإحصائيات')]);
       sheet.appendRow([
         excel_pkg.TextCellValue('الحالة'),
         excel_pkg.TextCellValue('العدد'),
@@ -307,7 +310,7 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
         excel_pkg.IntCellValue(attend + absent + excuse),
       ]);
       sheet.appendRow([]); // Empty row
-      
+
       // Add main table header
       sheet.appendRow([
         excel_pkg.TextCellValue('التاريخ'),
@@ -322,11 +325,21 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
       for (final record in _reportData) {
         final date = record['Report_date']?.toString().split('T')[0] ?? '';
         final studentName = record['Students']?['Student_Name'] ?? '';
-        final studentCode = record['Students']?['Student_Code']?.toString() ?? '';
+        final studentCode =
+            record['Students']?['Student_Code']?.toString() ?? '';
         final type = record['_type'] ?? '';
-        final attend = (record['Attend_flag'] == true || record['Attend_flag'] == 1) ? '✓' : '';
-        final absent = (record['Absent_flag'] == true || record['Absent_flag'] == 1) ? '✓' : '';
-        final excuse = (record['Execuse_flag'] == true || record['Execuse_flag'] == 1) ? '✓' : '';
+        final attend =
+            (record['Attend_flag'] == true || record['Attend_flag'] == 1)
+            ? '✓'
+            : '';
+        final absent =
+            (record['Absent_flag'] == true || record['Absent_flag'] == 1)
+            ? '✓'
+            : '';
+        final excuse =
+            (record['Execuse_flag'] == true || record['Execuse_flag'] == 1)
+            ? '✓'
+            : '';
 
         sheet.appendRow([
           excel_pkg.TextCellValue(date),
@@ -349,15 +362,34 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
       sheet.setColumnWidth(6, 12);
 
       // Apply basic styles to title and headers
-      sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0)).cellStyle = titleStyle;
-      sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 2)).cellStyle = headerStyle;
+      sheet
+              .cell(
+                excel_pkg.CellIndex.indexByColumnRow(
+                  columnIndex: 0,
+                  rowIndex: 0,
+                ),
+              )
+              .cellStyle =
+          titleStyle;
+      sheet
+              .cell(
+                excel_pkg.CellIndex.indexByColumnRow(
+                  columnIndex: 0,
+                  rowIndex: 2,
+                ),
+              )
+              .cellStyle =
+          headerStyle;
 
       final bytes = excel.encode();
       if (bytes != null) {
         final blob = html.Blob([Uint8List.fromList(bytes)]);
         final url = html.Url.createObjectUrlFromBlob(blob);
         html.AnchorElement(href: url)
-          ..setAttribute('download', 'attendance_report_${DateTime.now().millisecondsSinceEpoch}.xlsx')
+          ..setAttribute(
+            'download',
+            'attendance_report_${DateTime.now().millisecondsSinceEpoch}.xlsx',
+          )
           ..click();
         html.Url.revokeObjectUrl(url);
 
@@ -370,18 +402,18 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
     } catch (e) {
       debugPrint('Error exporting to Excel: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ في التصدير: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('خطأ في التصدير: $e')));
       }
     }
   }
 
   Future<void> _exportToPDF() async {
     if (_reportData.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('لا توجد بيانات للتصدير')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('لا توجد بيانات للتصدير')));
       return;
     }
 
@@ -397,24 +429,24 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
         fontWeight: pw.FontWeight.bold,
         font: arabicFontData,
       );
-      
+
       final arabicHeaderStyle = pw.TextStyle(
         fontSize: 12,
         fontWeight: pw.FontWeight.bold,
         font: arabicFontData,
       );
-      
-      final arabicStyle = pw.TextStyle(
-        fontSize: 11,
-        font: arabicFontData,
-      );
+
+      final arabicStyle = pw.TextStyle(fontSize: 11, font: arabicFontData);
 
       // Compute statistics
       var attend = 0, absent = 0, excuse = 0;
       for (final record in _reportData) {
-        if (record['Attend_flag'] == true || record['Attend_flag'] == 1) attend++;
-        if (record['Absent_flag'] == true || record['Absent_flag'] == 1) absent++;
-        if (record['Execuse_flag'] == true || record['Execuse_flag'] == 1) excuse++;
+        if (record['Attend_flag'] == true || record['Attend_flag'] == 1)
+          attend++;
+        if (record['Absent_flag'] == true || record['Absent_flag'] == 1)
+          absent++;
+        if (record['Execuse_flag'] == true || record['Execuse_flag'] == 1)
+          excuse++;
       }
 
       pdf.addPage(
@@ -457,19 +489,49 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
             ),
             pw.SizedBox(height: 8),
             pw.TableHelper.fromTextArray(
-              headers: ['التاريخ', 'اسم الطالب', 'رقم الطالب', 'النوع', 'حاضر', 'غائب', 'معتذر'],
+              headers: [
+                'التاريخ',
+                'اسم الطالب',
+                'رقم الطالب',
+                'النوع',
+                'حاضر',
+                'غائب',
+                'معتذر',
+              ],
               headerStyle: arabicHeaderStyle,
               cellStyle: arabicStyle,
               data: _reportData.map((record) {
-                final date = record['Report_date']?.toString().split('T')[0] ?? '';
+                final date =
+                    record['Report_date']?.toString().split('T')[0] ?? '';
                 final studentName = record['Students']?['Student_Name'] ?? '';
-                final studentCode = record['Students']?['Student_Code']?.toString() ?? '';
+                final studentCode =
+                    record['Students']?['Student_Code']?.toString() ?? '';
                 final type = record['_type'] ?? '';
-                final attend = (record['Attend_flag'] == true || record['Attend_flag'] == 1) ? '✓' : '';
-                final absent = (record['Absent_flag'] == true || record['Absent_flag'] == 1) ? '✓' : '';
-                final excuse = (record['Execuse_flag'] == true || record['Execuse_flag'] == 1) ? '✓' : '';
+                final attend =
+                    (record['Attend_flag'] == true ||
+                        record['Attend_flag'] == 1)
+                    ? '✓'
+                    : '';
+                final absent =
+                    (record['Absent_flag'] == true ||
+                        record['Absent_flag'] == 1)
+                    ? '✓'
+                    : '';
+                final excuse =
+                    (record['Execuse_flag'] == true ||
+                        record['Execuse_flag'] == 1)
+                    ? '✓'
+                    : '';
 
-                return [date, studentName, studentCode, type, attend, absent, excuse];
+                return [
+                  date,
+                  studentName,
+                  studentCode,
+                  type,
+                  attend,
+                  absent,
+                  excuse,
+                ];
               }).toList(),
               cellAlignment: pw.Alignment.centerLeft,
             ),
@@ -482,7 +544,10 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
       final blob = html.Blob([Uint8List.fromList(bytes)]);
       final url = html.Url.createObjectUrlFromBlob(blob);
       html.AnchorElement(href: url)
-        ..setAttribute('download', 'attendance_report_${DateTime.now().millisecondsSinceEpoch}.pdf')
+        ..setAttribute(
+          'download',
+          'attendance_report_${DateTime.now().millisecondsSinceEpoch}.pdf',
+        )
         ..click();
       html.Url.revokeObjectUrl(url);
 
@@ -494,9 +559,9 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
     } catch (e) {
       debugPrint('Error exporting to PDF: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ في التصدير: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('خطأ في التصدير: $e')));
       }
     }
   }
@@ -577,20 +642,24 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
                   : _reportData.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.inbox_outlined, size: 64, color: Colors.grey[400]),
-                              const SizedBox(height: 16),
-                              Text(
-                                'اختر المرشحات واضغط "عرض" لإنشاء التقرير',
-                                style: TextStyle(color: Colors.grey[600]),
-                              ),
-                            ],
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.inbox_outlined,
+                            size: 64,
+                            color: Colors.grey[400],
                           ),
-                        )
-                      : _buildReportAndCharts(),
+                          const SizedBox(height: 16),
+                          Text(
+                            'اختر المرشحات واضغط "عرض" لإنشاء التقرير',
+                            style: TextStyle(color: Colors.grey[600]),
+                          ),
+                        ],
+                      ),
+                    )
+                  : _buildReportAndCharts(),
             ),
           ],
         ),
@@ -606,8 +675,9 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
     required String nameKey,
     required Function(dynamic) onChanged,
   }) {
-    return DropdownButtonFormField<dynamic>(
-      initialValue: value,
+    return SearchableLovField<dynamic>(
+      value: value,
+      labelText: label,
       onChanged: onChanged,
       decoration: InputDecoration(
         labelText: label,
@@ -616,11 +686,11 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
         isDense: true,
       ),
       items: [
-        DropdownMenuItem(value: null, child: Text('الكل')),
+        const SearchableLovItem<dynamic>(value: null, label: 'الكل'),
         ...items.map((item) {
-          return DropdownMenuItem(
+          return SearchableLovItem<dynamic>(
             value: item[idKey],
-            child: Text(item[nameKey]?.toString() ?? ''),
+            label: item[nameKey]?.toString() ?? '',
           );
         }),
       ],
@@ -638,15 +708,16 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
         decoration: InputDecoration(
           labelText: label,
           border: const OutlineInputBorder(),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 8,
+          ),
           isDense: true,
           suffixIcon: const Icon(Icons.calendar_today, size: 18),
         ),
         child: Text(
           date == null ? 'اختر التاريخ' : date.toIso8601String().split('T')[0],
-          style: TextStyle(
-            color: date == null ? Colors.grey : Colors.black,
-          ),
+          style: TextStyle(color: date == null ? Colors.grey : Colors.black),
         ),
       ),
     );
@@ -657,39 +728,98 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
       padding: const EdgeInsets.all(16),
       child: ResponsiveTableContainer(
         child: DataTable(
-                    headingRowColor: WidgetStateProperty.all(const Color(0xFF6366F1).withOpacity(0.1)),
-                    columnSpacing: 24,
-                    columns: const [
-                      DataColumn(label: Text('التاريخ', style: TextStyle(fontWeight: FontWeight.bold))),
-                      DataColumn(label: Text('اسم الطالب', style: TextStyle(fontWeight: FontWeight.bold))),
-                      DataColumn(label: Text('رقم الطالب', style: TextStyle(fontWeight: FontWeight.bold))),
-                      DataColumn(label: Text('النوع', style: TextStyle(fontWeight: FontWeight.bold))),
-                      DataColumn(label: Text('حاضر', style: TextStyle(fontWeight: FontWeight.bold))),
-                      DataColumn(label: Text('غائب', style: TextStyle(fontWeight: FontWeight.bold))),
-                      DataColumn(label: Text('معتذر', style: TextStyle(fontWeight: FontWeight.bold))),
-                    ],
-                    rows: _reportData.map((record) {
-                      final date = record['Report_date']?.toString().split('T')[0] ?? '';
-                      final studentName = record['Students']?['Student_Name'] ?? '';
-                      final studentCode = record['Students']?['Student_Code']?.toString() ?? '';
-                      final type = record['_type'] ?? '';
-                      final attend = record['Attend_flag'] == true || record['Attend_flag'] == 1;
-                      final absent = record['Absent_flag'] == true || record['Absent_flag'] == 1;
-                      final excuse = record['Execuse_flag'] == true || record['Execuse_flag'] == 1;
+          headingRowColor: WidgetStateProperty.all(
+            const Color(0xFF6366F1).withOpacity(0.1),
+          ),
+          columnSpacing: 24,
+          columns: const [
+            DataColumn(
+              label: Text(
+                'التاريخ',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            DataColumn(
+              label: Text(
+                'اسم الطالب',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            DataColumn(
+              label: Text(
+                'رقم الطالب',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            DataColumn(
+              label: Text(
+                'النوع',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            DataColumn(
+              label: Text(
+                'حاضر',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            DataColumn(
+              label: Text(
+                'غائب',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            DataColumn(
+              label: Text(
+                'معتذر',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+          rows: _reportData.map((record) {
+            final date = record['Report_date']?.toString().split('T')[0] ?? '';
+            final studentName = record['Students']?['Student_Name'] ?? '';
+            final studentCode =
+                record['Students']?['Student_Code']?.toString() ?? '';
+            final type = record['_type'] ?? '';
+            final attend =
+                record['Attend_flag'] == true || record['Attend_flag'] == 1;
+            final absent =
+                record['Absent_flag'] == true || record['Absent_flag'] == 1;
+            final excuse =
+                record['Execuse_flag'] == true || record['Execuse_flag'] == 1;
 
-                      return DataRow(
-                        cells: [
-                          DataCell(Text(date)),
-                          DataCell(Text(studentName)),
-                          DataCell(Text(studentCode)),
-                          DataCell(Text(type)),
-                          DataCell(Icon(attend ? Icons.check_circle : Icons.remove_circle_outline, color: attend ? Colors.green : Colors.grey, size: 20)),
-                          DataCell(Icon(absent ? Icons.check_circle : Icons.remove_circle_outline, color: absent ? Colors.red : Colors.grey, size: 20)),
-                          DataCell(Icon(excuse ? Icons.check_circle : Icons.remove_circle_outline, color: excuse ? Colors.orange : Colors.grey, size: 20)),
-                        ],
-                      );
-                    }).toList(),
+            return DataRow(
+              cells: [
+                DataCell(Text(date)),
+                DataCell(Text(studentName)),
+                DataCell(Text(studentCode)),
+                DataCell(Text(type)),
+                DataCell(
+                  Icon(
+                    attend ? Icons.check_circle : Icons.remove_circle_outline,
+                    color: attend ? Colors.green : Colors.grey,
+                    size: 20,
                   ),
+                ),
+                DataCell(
+                  Icon(
+                    absent ? Icons.check_circle : Icons.remove_circle_outline,
+                    color: absent ? Colors.red : Colors.grey,
+                    size: 20,
+                  ),
+                ),
+                DataCell(
+                  Icon(
+                    excuse ? Icons.check_circle : Icons.remove_circle_outline,
+                    color: excuse ? Colors.orange : Colors.grey,
+                    size: 20,
+                  ),
+                ),
+              ],
+            );
+          }).toList(),
+        ),
       ),
     );
   }
@@ -795,7 +925,11 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
             child: ElevatedButton.icon(
               onPressed: _loading ? null : _generateReport,
               icon: _loading
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
                   : const Icon(Icons.search),
               label: const Text('عرض'),
               style: ElevatedButton.styleFrom(
@@ -846,7 +980,8 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
     for (final record in _reportData) {
       if (record['Attend_flag'] == true || record['Attend_flag'] == 1) attend++;
       if (record['Absent_flag'] == true || record['Absent_flag'] == 1) absent++;
-      if (record['Execuse_flag'] == true || record['Execuse_flag'] == 1) excuse++;
+      if (record['Execuse_flag'] == true || record['Execuse_flag'] == 1)
+        excuse++;
     }
 
     return _AttendanceStats(attend: attend, absent: absent, excuse: excuse);
@@ -932,7 +1067,10 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
     );
   }
 
-  List<PieChartSectionData> _buildPieSections(_AttendanceStats stats, double total) {
+  List<PieChartSectionData> _buildPieSections(
+    _AttendanceStats stats,
+    double total,
+  ) {
     final items = <PieChartSectionData>[];
 
     void addSection(double value, Color color) {
@@ -944,7 +1082,11 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
           value: value,
           title: '$percent%',
           radius: 70,
-          titleStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+          titleStyle: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+          ),
         ),
       );
     }
@@ -960,7 +1102,11 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(width: 12, height: 12, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
         const SizedBox(width: 6),
         Text('$label: $value'),
       ],

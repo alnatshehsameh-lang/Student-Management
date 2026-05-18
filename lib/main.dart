@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'screens/students_screen.dart';
 import 'screens/attendance_report_screen.dart';
+import 'screens/lookup_settings_screen.dart';
 import 'screens/supervisors_screen.dart';
 import 'models/user_session.dart';
 
@@ -11,7 +12,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Supabase.initialize(
     url: 'https://stjaqnjspyfvvwdzjnbi.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0amFxbmpzcHlmdnZ3ZHpqbmJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkwNTQ1NTIsImV4cCI6MjA3NDYzMDU1Mn0.PnWz3ISGVz88FaA8GR7rYudaAQdVLpuJKBHMMXPi7dE',
+    anonKey:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0amFxbmpzcHlmdnZ3ZHpqbmJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkwNTQ1NTIsImV4cCI6MjA3NDYzMDU1Mn0.PnWz3ISGVz88FaA8GR7rYudaAQdVLpuJKBHMMXPi7dE',
   );
   runApp(const MyApp());
 }
@@ -23,18 +25,26 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     // Modern theme inspired by Gospel Dashboard: purple primary, soft backgrounds
     final seed = const Color(0xFF6366F1); // vibrant purple/indigo
-    final colorScheme = ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.light).copyWith(
-      primary: const Color(0xFF6366F1),
-      secondary: const Color(0xFF3B82F6),
-      tertiary: const Color(0xFF10B981),
-      surface: Colors.white,
-    );
+    final colorScheme =
+        ColorScheme.fromSeed(
+          seedColor: seed,
+          brightness: Brightness.light,
+        ).copyWith(
+          primary: const Color(0xFF6366F1),
+          secondary: const Color(0xFF3B82F6),
+          tertiary: const Color(0xFF10B981),
+          surface: Colors.white,
+        );
 
-    final darkColorScheme = ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.dark).copyWith(
-      primary: const Color(0xFF818CF8),
-      secondary: const Color(0xFF60A5FA),
-      tertiary: const Color(0xFF34D399),
-    );
+    final darkColorScheme =
+        ColorScheme.fromSeed(
+          seedColor: seed,
+          brightness: Brightness.dark,
+        ).copyWith(
+          primary: const Color(0xFF818CF8),
+          secondary: const Color(0xFF60A5FA),
+          tertiary: const Color(0xFF34D399),
+        );
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -46,12 +56,36 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFFF8FAFC),
         // Typography: use Tajawal from Google Fonts for a modern Arabic-friendly UI
         textTheme: GoogleFonts.tajawalTextTheme().copyWith(
-          displayLarge: GoogleFonts.tajawal(fontSize: 32, fontWeight: FontWeight.w700, color: const Color(0xFF1F2937)),
-          displayMedium: GoogleFonts.tajawal(fontSize: 24, fontWeight: FontWeight.w600, color: const Color(0xFF1F2937)),
-          titleLarge: GoogleFonts.tajawal(fontSize: 20, fontWeight: FontWeight.w600, color: const Color(0xFF374151)),
-          bodyLarge: GoogleFonts.tajawal(fontSize: 16, fontWeight: FontWeight.w500, color: const Color(0xFF374151)),
-          bodyMedium: GoogleFonts.tajawal(fontSize: 14, fontWeight: FontWeight.w400, color: const Color(0xFF6B7280)),
-          labelLarge: GoogleFonts.tajawal(fontSize: 14, fontWeight: FontWeight.w600, color: colorScheme.primary),
+          displayLarge: GoogleFonts.tajawal(
+            fontSize: 32,
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF1F2937),
+          ),
+          displayMedium: GoogleFonts.tajawal(
+            fontSize: 24,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF1F2937),
+          ),
+          titleLarge: GoogleFonts.tajawal(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF374151),
+          ),
+          bodyLarge: GoogleFonts.tajawal(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: const Color(0xFF374151),
+          ),
+          bodyMedium: GoogleFonts.tajawal(
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
+            color: const Color(0xFF6B7280),
+          ),
+          labelLarge: GoogleFonts.tajawal(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: colorScheme.primary,
+          ),
         ),
         appBarTheme: AppBarTheme(
           backgroundColor: Colors.white,
@@ -59,16 +93,25 @@ class MyApp extends StatelessWidget {
           elevation: 0,
           shadowColor: Colors.black.withOpacity(0.05),
           centerTitle: true,
-          titleTextStyle: GoogleFonts.tajawal(fontSize: 20, fontWeight: FontWeight.w600, color: const Color(0xFF1F2937)),
+          titleTextStyle: GoogleFonts.tajawal(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF1F2937),
+          ),
           iconTheme: const IconThemeData(color: Color(0xFF6B7280)),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF6366F1),
             foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-            textStyle: GoogleFonts.tajawal(fontSize: 15, fontWeight: FontWeight.w600),
+            textStyle: GoogleFonts.tajawal(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+            ),
             elevation: 0,
             shadowColor: Colors.transparent,
           ),
@@ -76,24 +119,48 @@ class MyApp extends StatelessWidget {
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2)),
-          labelStyle: GoogleFonts.tajawal(color: const Color(0xFF6B7280), fontWeight: FontWeight.w500),
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: 14,
+            horizontal: 16,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+          ),
+          labelStyle: GoogleFonts.tajawal(
+            color: const Color(0xFF6B7280),
+            fontWeight: FontWeight.w500,
+          ),
         ),
         cardColor: Colors.white,
         cardTheme: CardThemeData(
           elevation: 0,
           shadowColor: Colors.black.withOpacity(0.05),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           margin: const EdgeInsets.all(8),
         ),
         iconTheme: const IconThemeData(color: Color(0xFF6366F1)),
         dataTableTheme: DataTableThemeData(
           headingRowColor: WidgetStateProperty.all(const Color(0xFFF9FAFB)),
-          headingTextStyle: GoogleFonts.tajawal(fontWeight: FontWeight.w600, fontSize: 14, color: const Color(0xFF6B7280)),
-          dataTextStyle: GoogleFonts.tajawal(fontSize: 14, color: const Color(0xFF374151)),
+          headingTextStyle: GoogleFonts.tajawal(
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+            color: const Color(0xFF6B7280),
+          ),
+          dataTextStyle: GoogleFonts.tajawal(
+            fontSize: 14,
+            color: const Color(0xFF374151),
+          ),
           dividerThickness: 1,
           decoration: BoxDecoration(
             border: Border.all(color: const Color(0xFFE5E7EB)),
@@ -108,46 +175,100 @@ class MyApp extends StatelessWidget {
         primaryColor: darkColorScheme.primary,
         scaffoldBackgroundColor: const Color(0xFF0F172A),
         // Dark typography using Tajawal
-        textTheme: GoogleFonts.tajawalTextTheme(ThemeData(brightness: Brightness.dark).textTheme).copyWith(
-          displayLarge: GoogleFonts.tajawal(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
-          displayMedium: GoogleFonts.tajawal(fontSize: 22, fontWeight: FontWeight.w700, color: Colors.white),
-          titleLarge: GoogleFonts.tajawal(fontSize: 18, fontWeight: FontWeight.w700),
-          bodyLarge: GoogleFonts.tajawal(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white70),
-          bodyMedium: GoogleFonts.tajawal(fontSize: 14, color: Colors.white70),
-          labelLarge: GoogleFonts.tajawal(fontSize: 14, fontWeight: FontWeight.w600, color: darkColorScheme.primary),
-        ),
+        textTheme:
+            GoogleFonts.tajawalTextTheme(
+              ThemeData(brightness: Brightness.dark).textTheme,
+            ).copyWith(
+              displayLarge: GoogleFonts.tajawal(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+              displayMedium: GoogleFonts.tajawal(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+              titleLarge: GoogleFonts.tajawal(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
+              bodyLarge: GoogleFonts.tajawal(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.white70,
+              ),
+              bodyMedium: GoogleFonts.tajawal(
+                fontSize: 14,
+                color: Colors.white70,
+              ),
+              labelLarge: GoogleFonts.tajawal(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: darkColorScheme.primary,
+              ),
+            ),
         appBarTheme: AppBarTheme(
           backgroundColor: darkColorScheme.surfaceContainerHighest,
           foregroundColor: darkColorScheme.onSurfaceVariant,
           elevation: 2,
           centerTitle: true,
-          titleTextStyle: GoogleFonts.tajawal(fontSize: 20, fontWeight: FontWeight.w700, color: darkColorScheme.onSurfaceVariant),
+          titleTextStyle: GoogleFonts.tajawal(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: darkColorScheme.onSurfaceVariant,
+          ),
           iconTheme: IconThemeData(color: darkColorScheme.onSurfaceVariant),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: darkColorScheme.primary,
             foregroundColor: darkColorScheme.onPrimary,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
-            textStyle: GoogleFonts.tajawal(fontSize: 16, fontWeight: FontWeight.w700),
+            textStyle: GoogleFonts.tajawal(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
             elevation: 2,
           ),
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: const Color(0xFF0B1220),
-          contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: darkColorScheme.outline)),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: darkColorScheme.outline)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: darkColorScheme.primary, width: 2)),
-          labelStyle: GoogleFonts.tajawal(color: darkColorScheme.primary, fontWeight: FontWeight.w600),
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: 12,
+            horizontal: 14,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: darkColorScheme.outline),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: darkColorScheme.outline),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: darkColorScheme.primary, width: 2),
+          ),
+          labelStyle: GoogleFonts.tajawal(
+            color: darkColorScheme.primary,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         cardColor: const Color(0xFF071226),
         iconTheme: IconThemeData(color: darkColorScheme.primary),
         dataTableTheme: DataTableThemeData(
-          headingRowColor: WidgetStateProperty.all(darkColorScheme.surfaceContainerHighest.withOpacity(0.12)),
-          headingTextStyle: GoogleFonts.tajawal(fontWeight: FontWeight.w700, color: Colors.white70),
+          headingRowColor: WidgetStateProperty.all(
+            darkColorScheme.surfaceContainerHighest.withOpacity(0.12),
+          ),
+          headingTextStyle: GoogleFonts.tajawal(
+            fontWeight: FontWeight.w700,
+            color: Colors.white70,
+          ),
           dataTextStyle: GoogleFonts.tajawal(color: Colors.white70),
           dividerThickness: 0.5,
         ),
@@ -161,10 +282,7 @@ class MyApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('en'),
-        Locale('ar'),
-      ],
+      supportedLocales: const [Locale('en'), Locale('ar')],
     );
   }
 }
@@ -245,7 +363,7 @@ class _LoginPageState extends State<LoginPage> {
         int? assignedClassId;
         int? assignedGroupId;
         int? assignedTypeId;
-        
+
         if (userRole == UserRole.supervisor) {
           try {
             final managerData = await _client
@@ -254,7 +372,7 @@ class _LoginPageState extends State<LoginPage> {
                 .eq('User_id', response['id'])
                 .limit(1)
                 .maybeSingle();
-            
+
             if (managerData != null) {
               assignedClassId = managerData['Class_id'];
               assignedGroupId = managerData['Group_id'];
@@ -305,13 +423,20 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
-    final loginCardWidth = media.size.width < 420 ? media.size.width - 24 : 370.0;
+    final loginCardWidth = media.size.width < 420
+        ? media.size.width - 24
+        : 370.0;
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFFF5F3FF), Color(0xFFDEEBFF), Color(0xFFDCFCE7), Color(0xFFFEF3C7)],
+            colors: [
+              Color(0xFFF5F3FF),
+              Color(0xFFDEEBFF),
+              Color(0xFFDCFCE7),
+              Color(0xFFFEF3C7),
+            ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -321,102 +446,126 @@ class _LoginPageState extends State<LoginPage> {
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(12),
               child: Container(
-              padding: EdgeInsets.all(media.size.width < 420 ? 20 : 28),
-              decoration: BoxDecoration(
-                color: Colors.white.withAlpha((0.92 * 255).round()),
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12.withAlpha((0.08 * 255).round()),
-                    blurRadius: 18,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              width: loginCardWidth,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'تسجيل الدخول',
-                    style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: Color(0xFF185A9D)),
-                  ),
-                  const SizedBox(height: 32),
-                  TextField(
-                    controller: _usernameController,
-                    decoration: InputDecoration(
-                      labelText: 'اسم المستخدم',
-                      labelStyle: const TextStyle(color: Color(0xFF185A9D)),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: Color(0xFFBEE3F8)),
-                      ),
-                      filled: true,
-                      fillColor: const Color(0xFFBEE3F8).withAlpha((0.25 * 255).round()),
+                padding: EdgeInsets.all(media.size.width < 420 ? 20 : 28),
+                decoration: BoxDecoration(
+                  color: Colors.white.withAlpha((0.92 * 255).round()),
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12.withAlpha((0.08 * 255).round()),
+                      blurRadius: 18,
+                      offset: const Offset(0, 8),
                     ),
-                    textDirection: TextDirection.rtl,
-                  ),
-                  const SizedBox(height: 18),
-                  TextField(
-                    controller: _passwordController,
-                    obscureText: _obscureText,
-                    decoration: InputDecoration(
-                      labelText: 'كلمة المرور',
-                      labelStyle: const TextStyle(color: Color(0xFF185A9D)),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: Color(0xFFFFE0E6)),
-                      ),
-                      filled: true,
-                      fillColor: const Color(0xFFFFE0E6).withAlpha((0.25 * 255).round()),
-                      suffixIcon: IconButton(
-                        icon: Icon(_obscureText ? Icons.visibility : Icons.visibility_off, color: Color(0xFF185A9D)),
-                        onPressed: () {
-                          setState(() {
-                            _obscureText = !_obscureText;
-                          });
-                        },
+                  ],
+                ),
+                width: loginCardWidth,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'تسجيل الدخول',
+                      style: TextStyle(
+                        fontSize: 30,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF185A9D),
                       ),
                     ),
-                    textDirection: TextDirection.rtl,
-                  ),
-                  const SizedBox(height: 18),
-                  if (_errorMessage != null)
-                    Text(
-                      _errorMessage!,
-                      style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-                    ),
-                  const SizedBox(height: 18),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _login,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF6366F1),
-                        padding: const EdgeInsets.symmetric(vertical: 18),
-                        shape: RoundedRectangleBorder(
+                    const SizedBox(height: 32),
+                    TextField(
+                      controller: _usernameController,
+                      decoration: InputDecoration(
+                        labelText: 'اسم المستخدم',
+                        labelStyle: const TextStyle(color: Color(0xFF185A9D)),
+                        border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFBEE3F8),
+                          ),
                         ),
-                        elevation: 2,
+                        filled: true,
+                        fillColor: const Color(
+                          0xFFBEE3F8,
+                        ).withAlpha((0.25 * 255).round()),
                       ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : const Text(
-                              'دخول',
-                              style: TextStyle(fontSize: 22, color: Colors.white, fontWeight: FontWeight.bold),
-                            ),
+                      textDirection: TextDirection.rtl,
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 18),
+                    TextField(
+                      controller: _passwordController,
+                      obscureText: _obscureText,
+                      decoration: InputDecoration(
+                        labelText: 'كلمة المرور',
+                        labelStyle: const TextStyle(color: Color(0xFF185A9D)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFFFE0E6),
+                          ),
+                        ),
+                        filled: true,
+                        fillColor: const Color(
+                          0xFFFFE0E6,
+                        ).withAlpha((0.25 * 255).round()),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscureText
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                            color: Color(0xFF185A9D),
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscureText = !_obscureText;
+                            });
+                          },
+                        ),
+                      ),
+                      textDirection: TextDirection.rtl,
+                    ),
+                    const SizedBox(height: 18),
+                    if (_errorMessage != null)
+                      Text(
+                        _errorMessage!,
+                        style: const TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    const SizedBox(height: 18),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _login,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF6366F1),
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          elevation: 2,
+                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'دخول',
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
             ),
           ),
         ),
@@ -468,13 +617,15 @@ class _HomeScreenState extends State<HomeScreen> {
       final weekAgo = now.subtract(const Duration(days: 7));
       final weekAgoStr = weekAgo.toIso8601String();
 
-      final tadaburRes = await _client.from('Attendance_Tadabur')
-        .select('id')
-        .gte('Report_date', weekAgoStr);
-      final sardRes = await _client.from('Attendance_Sard')
-        .select('id')
-        .gte('Report_date', weekAgoStr);
-      
+      final tadaburRes = await _client
+          .from('Attendance_Tadabur')
+          .select('id')
+          .gte('Report_date', weekAgoStr);
+      final sardRes = await _client
+          .from('Attendance_Sard')
+          .select('id')
+          .gte('Report_date', weekAgoStr);
+
       final tadCount = tadaburRes is List ? tadaburRes.length : 0;
       final sardCount = sardRes is List ? sardRes.length : 0;
       _weeklyAttendance = tadCount + sardCount;
@@ -492,7 +643,9 @@ class _HomeScreenState extends State<HomeScreen> {
         textDirection: TextDirection.rtl,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final minWidth = constraints.maxWidth < 1100 ? 1100.0 : constraints.maxWidth;
+            final minWidth = constraints.maxWidth < 1100
+                ? 1100.0
+                : constraints.maxWidth;
             final contentWidth = (minWidth - 280).clamp(320.0, 2400.0);
             return SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -500,285 +653,354 @@ class _HomeScreenState extends State<HomeScreen> {
                 constraints: BoxConstraints(minWidth: minWidth),
                 child: Row(
                   children: [
-            // Left Sidebar
-            Container(
-              width: 280,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border(
-                  left: BorderSide(color: const Color(0xFFE5E7EB), width: 1),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Logo and title
-                  Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 56,
-                          height: 56,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF6366F1),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: const Icon(Icons.menu_book, color: Colors.white, size: 32),
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'لوحة التحكم',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF1F2937),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'نظام إدارة الحلقات',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF9CA3AF),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Divider(height: 1),
-                  Expanded(
-                    child: ListView(
-                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                      children: [
-                        _NavItem(
-                          icon: Icons.home,
-                          label: 'الرئيسية',
-                          isActive: true,
-                          onTap: () {},
-                        ),
-                        const SizedBox(height: 4),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                          child: Text(
-                            'إدارة الحلقات',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF9CA3AF),
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.school,
-                          label: 'الطالبات',
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => StudentsScreen(userSession: widget.userSession),
-                              ),
-                            );
-                          },
-                        ),
-                        _NavItem(
-                          icon: Icons.group,
-                          label: 'الحضور',
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => GroupsScreen(userSession: widget.userSession),
-                              ),
-                            );
-                          },
-                        ),
-                        _NavItem(
-                          icon: Icons.supervisor_account,
-                          label: 'المشرفات',
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => SupervisorsScreen(userSession: widget.userSession),
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 4),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                          child: Text(
-                            'التقارير',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF9CA3AF),
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.assessment,
-                          label: 'تقرير الحضور',
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => AttendanceReportScreen(userSession: widget.userSession),
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 4),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                          child: Text(
-                            'الإعدادات',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF9CA3AF),
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
-                        _NavItem(
-                          icon: Icons.settings,
-                          label: 'الإعدادات',
-                          onTap: () {},
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Divider(height: 1),
-                  Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: _NavItem(
-                      icon: Icons.logout,
-                      label: 'تسجيل الخروج',
-                      onTap: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (context) => const LoginPage()),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // Main content area
-            SizedBox(
-              width: contentWidth,
-              child: Container(
-                color: const Color(0xFFF8FAFC),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header
+                    // Left Sidebar
                     Container(
-                      padding: const EdgeInsets.all(32),
-                      decoration: const BoxDecoration(
+                      width: 280,
+                      decoration: BoxDecoration(
                         color: Colors.white,
                         border: Border(
-                          bottom: BorderSide(color: Color(0xFFE5E7EB), width: 1),
+                          left: BorderSide(
+                            color: const Color(0xFFE5E7EB),
+                            width: 1,
+                          ),
                         ),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'نظرة عامة على لوحة التحكم',
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF1F2937),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'مرحباً بعودتك! إليك ما يحدث في نظام إدارة الحلقات.',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: const Color(0xFF6B7280),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    // Dashboard content
-                    Expanded(
-                      child: _loading
-                        ? const Center(child: CircularProgressIndicator())
-                        : SingleChildScrollView(
-                            padding: const EdgeInsets.all(32),
+                          // Logo and title
+                          Padding(
+                            padding: const EdgeInsets.all(24.0),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Stat cards grid
-                                LayoutBuilder(
-                                  builder: (context, constraints) {
-                                    int columns = 4;
-                                    if (constraints.maxWidth < 1200) columns = 3;
-                                    if (constraints.maxWidth < 900) columns = 2;
-                                    if (constraints.maxWidth < 600) columns = 1;
-
-                                    return GridView.count(
-                                      shrinkWrap: true,
-                                      physics: const NeverScrollableScrollPhysics(),
-                                      crossAxisCount: columns,
-                                      mainAxisSpacing: 20,
-                                      crossAxisSpacing: 20,
-                                      childAspectRatio: 1.8,
-                                      children: [
-                                        _StatCard(
-                                          title: 'إجمالي الطالبات',
-                                          value: _totalStudents.toString(),
-                                          icon: Icons.school,
-                                          color: const Color(0xFFF5F3FF),
-                                          iconColor: const Color(0xFF6366F1),
-                                          subtitle: 'طالبة مسجلة',
+                                Container(
+                                  width: 56,
+                                  height: 56,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF6366F1),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: const Icon(
+                                    Icons.menu_book,
+                                    color: Colors.white,
+                                    size: 32,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                const Text(
+                                  'لوحة التحكم',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF1F2937),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                const Text(
+                                  'نظام إدارة الحلقات',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Color(0xFF9CA3AF),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Divider(height: 1),
+                          Expanded(
+                            child: ListView(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 8,
+                                horizontal: 12,
+                              ),
+                              children: [
+                                _NavItem(
+                                  icon: Icons.home,
+                                  label: 'الرئيسية',
+                                  isActive: true,
+                                  onTap: () {},
+                                ),
+                                const SizedBox(height: 4),
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 12,
+                                  ),
+                                  child: Text(
+                                    'إدارة الحلقات',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF9CA3AF),
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ),
+                                _NavItem(
+                                  icon: Icons.school,
+                                  label: 'الطالبات',
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => StudentsScreen(
+                                          userSession: widget.userSession,
                                         ),
-                                        _StatCard(
-                                          title: 'إجمالي المجموعات',
-                                          value: _totalGroups.toString(),
-                                          icon: Icons.group,
-                                          color: const Color(0xFFDEEBFF),
-                                          iconColor: const Color(0xFF3B82F6),
-                                          subtitle: 'مجموعة نشطة',
+                                      ),
+                                    );
+                                  },
+                                ),
+                                _NavItem(
+                                  icon: Icons.group,
+                                  label: 'الحضور',
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => GroupsScreen(
+                                          userSession: widget.userSession,
                                         ),
-                                        _StatCard(
-                                          title: 'الحضور الأسبوعي',
-                                          value: _weeklyAttendance.toString(),
-                                          icon: Icons.calendar_today,
-                                          color: const Color(0xFFDCFCE7),
-                                          iconColor: const Color(0xFF10B981),
-                                          subtitle: 'آخر 7 أيام',
+                                      ),
+                                    );
+                                  },
+                                ),
+                                _NavItem(
+                                  icon: Icons.supervisor_account,
+                                  label: 'المشرفات',
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => SupervisorsScreen(
+                                          userSession: widget.userSession,
                                         ),
-                                        _StatCard(
-                                          title: 'التقارير النشطة',
-                                          value: '0',
-                                          icon: Icons.assessment,
-                                          color: const Color(0xFFFEF3C7),
-                                          iconColor: const Color(0xFFF59E0B),
-                                          subtitle: 'قيد المراجعة',
-                                        ),
-                                      ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(height: 4),
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 12,
+                                  ),
+                                  child: Text(
+                                    'التقارير',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF9CA3AF),
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ),
+                                _NavItem(
+                                  icon: Icons.assessment,
+                                  label: 'تقرير الحضور',
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            AttendanceReportScreen(
+                                              userSession: widget.userSession,
+                                            ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(height: 4),
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 12,
+                                  ),
+                                  child: Text(
+                                    'الإعدادات',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF9CA3AF),
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ),
+                                _NavItem(
+                                  icon: Icons.settings,
+                                  label: 'الإعدادات',
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            LookupSettingsScreen(
+                                              userSession: widget.userSession,
+                                            ),
+                                      ),
                                     );
                                   },
                                 ),
                               ],
                             ),
                           ),
+                          const Divider(height: 1),
+                          Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: _NavItem(
+                              icon: Icons.logout,
+                              label: 'تسجيل الخروج',
+                              onTap: () {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const LoginPage(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Main content area
+                    SizedBox(
+                      width: contentWidth,
+                      child: Container(
+                        color: const Color(0xFFF8FAFC),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Header
+                            Container(
+                              padding: const EdgeInsets.all(32),
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                border: Border(
+                                  bottom: BorderSide(
+                                    color: Color(0xFFE5E7EB),
+                                    width: 1,
+                                  ),
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'نظرة عامة على لوحة التحكم',
+                                    style: TextStyle(
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF1F2937),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'مرحباً بعودتك! إليك ما يحدث في نظام إدارة الحلقات.',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: const Color(0xFF6B7280),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Dashboard content
+                            Expanded(
+                              child: _loading
+                                  ? const Center(
+                                      child: CircularProgressIndicator(),
+                                    )
+                                  : SingleChildScrollView(
+                                      padding: const EdgeInsets.all(32),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          // Stat cards grid
+                                          LayoutBuilder(
+                                            builder: (context, constraints) {
+                                              int columns = 4;
+                                              if (constraints.maxWidth < 1200)
+                                                columns = 3;
+                                              if (constraints.maxWidth < 900)
+                                                columns = 2;
+                                              if (constraints.maxWidth < 600)
+                                                columns = 1;
+
+                                              return GridView.count(
+                                                shrinkWrap: true,
+                                                physics:
+                                                    const NeverScrollableScrollPhysics(),
+                                                crossAxisCount: columns,
+                                                mainAxisSpacing: 20,
+                                                crossAxisSpacing: 20,
+                                                childAspectRatio: 1.8,
+                                                children: [
+                                                  _StatCard(
+                                                    title: 'إجمالي الطالبات',
+                                                    value: _totalStudents
+                                                        .toString(),
+                                                    icon: Icons.school,
+                                                    color: const Color(
+                                                      0xFFF5F3FF,
+                                                    ),
+                                                    iconColor: const Color(
+                                                      0xFF6366F1,
+                                                    ),
+                                                    subtitle: 'طالبة مسجلة',
+                                                  ),
+                                                  _StatCard(
+                                                    title: 'إجمالي المجموعات',
+                                                    value: _totalGroups
+                                                        .toString(),
+                                                    icon: Icons.group,
+                                                    color: const Color(
+                                                      0xFFDEEBFF,
+                                                    ),
+                                                    iconColor: const Color(
+                                                      0xFF3B82F6,
+                                                    ),
+                                                    subtitle: 'مجموعة نشطة',
+                                                  ),
+                                                  _StatCard(
+                                                    title: 'الحضور الأسبوعي',
+                                                    value: _weeklyAttendance
+                                                        .toString(),
+                                                    icon: Icons.calendar_today,
+                                                    color: const Color(
+                                                      0xFFDCFCE7,
+                                                    ),
+                                                    iconColor: const Color(
+                                                      0xFF10B981,
+                                                    ),
+                                                    subtitle: 'آخر 7 أيام',
+                                                  ),
+                                                  _StatCard(
+                                                    title: 'التقارير النشطة',
+                                                    value: '0',
+                                                    icon: Icons.assessment,
+                                                    color: const Color(
+                                                      0xFFFEF3C7,
+                                                    ),
+                                                    iconColor: const Color(
+                                                      0xFFF59E0B,
+                                                    ),
+                                                    subtitle: 'قيد المراجعة',
+                                                  ),
+                                                ],
+                                              );
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
-                ),
-              ),
-            ),
-          ],
                 ),
               ),
             );
@@ -907,18 +1129,13 @@ class _StatCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             subtitle,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Color(0xFF9CA3AF),
-            ),
+            style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
           ),
         ],
       ),
     );
   }
 }
-
-
 
 class GroupsScreen extends StatefulWidget {
   final UserSession userSession;
@@ -998,7 +1215,9 @@ class _GroupsScreenState extends State<GroupsScreen> {
     try {
       // Fetch groups and include nested Students to compute counts on the client.
       // Apply Group_id filter if user has restriction
-      var builder = _client.from('Groups').select('id, "Group_Name", Students(id)');
+      var builder = _client
+          .from('Groups')
+          .select('id, "Group_Name", Students(id)');
       if (!widget.userSession.hasFullAccess && _userGroupId != null) {
         builder = builder.eq('id', _userGroupId!);
       }
@@ -1011,7 +1230,10 @@ class _GroupsScreenState extends State<GroupsScreen> {
     } catch (e) {
       _groups = [];
       debugPrint('GroupsScreen: fetch error: $e');
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error loading groups: $e')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error loading groups: $e')));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -1022,7 +1244,9 @@ class _GroupsScreenState extends State<GroupsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('الحضور'),
-        actions: [IconButton(icon: const Icon(Icons.refresh), onPressed: _fetchGroups)],
+        actions: [
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _fetchGroups),
+        ],
       ),
       body: Directionality(
         textDirection: TextDirection.rtl,
@@ -1031,15 +1255,21 @@ class _GroupsScreenState extends State<GroupsScreen> {
           child: _loading
               ? const Center(child: CircularProgressIndicator())
               : Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     // horizontal list of group cards (with counts and selected highlight)
                     Wrap(
                       spacing: 12,
                       runSpacing: 8,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        const Text('الحضور', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        const Text(
+                          'الحضور',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         if (_selectedGroupId != null)
                           TextButton.icon(
                             onPressed: () {
@@ -1062,45 +1292,104 @@ class _GroupsScreenState extends State<GroupsScreen> {
                           : ListView.separated(
                               scrollDirection: Axis.horizontal,
                               itemCount: _groups.length,
-                              separatorBuilder: (_, __) => const SizedBox(width: 12),
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(width: 12),
                               itemBuilder: (context, idx) {
                                 final g = _groups[idx];
                                 final gid = g['id'];
-                                final name = g['Group_Name'] ?? g['group_name'] ?? g['GroupName'] ?? '';
-                                final studentsList = (g['Students'] is List) ? List.from(g['Students']) : <dynamic>[];
+                                final name =
+                                    g['Group_Name'] ??
+                                    g['group_name'] ??
+                                    g['GroupName'] ??
+                                    '';
+                                final studentsList = (g['Students'] is List)
+                                    ? List.from(g['Students'])
+                                    : <dynamic>[];
                                 final count = studentsList.length;
-                                final selected = _selectedGroupId != null && _selectedGroupId == gid;
+                                final selected =
+                                    _selectedGroupId != null &&
+                                    _selectedGroupId == gid;
                                 return GestureDetector(
                                   onTap: () => _fetchStudentsForGroup(gid),
                                   child: AnimatedContainer(
                                     duration: const Duration(milliseconds: 200),
                                     width: 120,
                                     decoration: BoxDecoration(
-                                      color: selected ? const Color(0xFFBEE3F8) : const Color(0xFFE2E0FF),
+                                      color: selected
+                                          ? const Color(0xFFBEE3F8)
+                                          : const Color(0xFFE2E0FF),
                                       borderRadius: BorderRadius.circular(12),
-                                      boxShadow: selected ? [BoxShadow(color: Colors.black12.withAlpha(40), blurRadius: 8)] : [BoxShadow(color: Colors.black12.withAlpha(20), blurRadius: 6)],
-                                      border: selected ? Border.all(color: const Color(0xFF185A9D), width: 2) : null,
+                                      boxShadow: selected
+                                          ? [
+                                              BoxShadow(
+                                                color: Colors.black12.withAlpha(
+                                                  40,
+                                                ),
+                                                blurRadius: 8,
+                                              ),
+                                            ]
+                                          : [
+                                              BoxShadow(
+                                                color: Colors.black12.withAlpha(
+                                                  20,
+                                                ),
+                                                blurRadius: 6,
+                                              ),
+                                            ],
+                                      border: selected
+                                          ? Border.all(
+                                              color: const Color(0xFF185A9D),
+                                              width: 2,
+                                            )
+                                          : null,
                                     ),
                                     padding: const EdgeInsets.all(10),
                                     child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
                                         Stack(
                                           children: [
-                                            const Center(child: Icon(Icons.group, size: 28, color: Colors.black54)),
+                                            const Center(
+                                              child: Icon(
+                                                Icons.group,
+                                                size: 28,
+                                                color: Colors.black54,
+                                              ),
+                                            ),
                                             Positioned(
                                               right: 0,
                                               top: 0,
                                               child: Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-                                                child: Text('$count', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.white,
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
+                                                child: Text(
+                                                  '$count',
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
                                               ),
-                                            )
+                                            ),
                                           ],
                                         ),
                                         const SizedBox(height: 8),
-                                        Text(name.toString(), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w600)),
+                                        Text(
+                                          name.toString(),
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -1113,56 +1402,106 @@ class _GroupsScreenState extends State<GroupsScreen> {
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        const Text('تاريخ التقرير', style: TextStyle(fontWeight: FontWeight.w600)),
-                        const SizedBox(width: 12),
-                        GestureDetector(
-                          onTap: () async {
-                            final picked = await showDatePicker(
-                              context: context,
-                              initialDate: _reportDate,
-                              firstDate: DateTime(2000),
-                              lastDate: DateTime(2100),
-                              locale: const Locale('ar'),
-                            );
-                            if (picked != null && mounted) setState(() => _reportDate = picked);
-                            // Refresh submission status when date changes
-                            if (mounted) await _refreshTabSubmissionStatus();
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade300)),
-                            child: Row(
-                              children: [
-                                Icon(Icons.calendar_today, size: 18, color: Colors.grey.shade700),
-                                const SizedBox(width: 8),
-                                Text(_reportDate.toLocal().toIso8601String().split('T').first, style: const TextStyle(fontWeight: FontWeight.w600)),
-                              ],
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'تاريخ التقرير',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(width: 12),
+                          GestureDetector(
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: _reportDate,
+                                firstDate: DateTime(2000),
+                                lastDate: DateTime(2100),
+                                locale: const Locale('ar'),
+                              );
+                              if (picked != null && mounted)
+                                setState(() => _reportDate = picked);
+                              // Refresh submission status when date changes
+                              if (mounted) await _refreshTabSubmissionStatus();
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.grey.shade300),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.calendar_today,
+                                    size: 18,
+                                    color: Colors.grey.shade700,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    _reportDate
+                                        .toLocal()
+                                        .toIso8601String()
+                                        .split('T')
+                                        .first,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        ElevatedButton(
-                          onPressed: (_selectedClassId != null && _students.isNotEmpty && !_savingAttendance && _hasUnsavedChanges && !(_activeReportTab == 'tadabur' ? _tadaburSubmitted : _sardSubmitted))
-                              ? () async {
-                                  await _saveAttendance();
-                                }
-                              : null,
-                          child: _savingAttendance
-                              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                              : const Text('حفظ'),
-                        ),
-                        const SizedBox(width: 8),
-                        TextButton.icon(
-                          onPressed: (_selectedClassId != null && _students.isNotEmpty) ? () async { await _showAttendanceForClassDate(); } : null,
-                          icon: const Icon(Icons.list_alt),
-                          label: const Text('عرض السجلات'),
-                        ),
-                        const SizedBox(width: 8),
-                        if (_hasUnsavedChanges) const Text('غير محفوظة', style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
-                      ],
-                    ),
+                          const SizedBox(width: 12),
+                          ElevatedButton(
+                            onPressed:
+                                (_selectedClassId != null &&
+                                    _students.isNotEmpty &&
+                                    !_savingAttendance &&
+                                    _hasUnsavedChanges &&
+                                    !(_activeReportTab == 'tadabur'
+                                        ? _tadaburSubmitted
+                                        : _sardSubmitted))
+                                ? () async {
+                                    await _saveAttendance();
+                                  }
+                                : null,
+                            child: _savingAttendance
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text('حفظ'),
+                          ),
+                          const SizedBox(width: 8),
+                          TextButton.icon(
+                            onPressed:
+                                (_selectedClassId != null &&
+                                    _students.isNotEmpty)
+                                ? () async {
+                                    await _showAttendanceForClassDate();
+                                  }
+                                : null,
+                            icon: const Icon(Icons.list_alt),
+                            label: const Text('عرض السجلات'),
+                          ),
+                          const SizedBox(width: 8),
+                          if (_hasUnsavedChanges)
+                            const Text(
+                              'غير محفوظة',
+                              style: TextStyle(
+                                color: Colors.red,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                     // types list for selected group and (later) students table
                     Expanded(
@@ -1173,41 +1512,77 @@ class _GroupsScreenState extends State<GroupsScreen> {
                               children: [
                                 // If a group is selected, show distinct Type chips for the group
                                 if (_selectedGroupId == null)
-                                  const Center(child: Text('اختر مجموعة لعرض الأنواع'))
+                                  const Center(
+                                    child: Text('اختر مجموعة لعرض الأنواع'),
+                                  )
                                 else if (_typeEntries.isEmpty)
-                                  Center(child: Text('لا توجد أنواع لهذه المجموعة'))
+                                  Center(
+                                    child: Text('لا توجد أنواع لهذه المجموعة'),
+                                  )
                                 else
                                   SizedBox(
                                     height: 56,
                                     child: ListView.separated(
                                       scrollDirection: Axis.horizontal,
                                       itemCount: _typeEntries.length,
-                                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                                      separatorBuilder: (_, __) =>
+                                          const SizedBox(width: 8),
                                       itemBuilder: (context, idx) {
                                         final t = _typeEntries[idx];
                                         final tidStr = t['id']!;
                                         final label = t['label']!;
-                                        final selected = _selectedTypeId != null && _selectedTypeId.toString() == tidStr;
+                                        final selected =
+                                            _selectedTypeId != null &&
+                                            _selectedTypeId.toString() ==
+                                                tidStr;
                                         return GestureDetector(
                                           onTap: () async {
                                             setState(() {
-                                              _selectedTypeId = int.tryParse(tidStr) ?? tidStr;
+                                              _selectedTypeId =
+                                                  int.tryParse(tidStr) ??
+                                                  tidStr;
                                               _selectedClassId = null;
                                               _students = [];
                                               _classEntries = [];
                                             });
                                             // fetch class entries for the chosen group+type (do not load students yet)
-                                            if (_selectedGroupId != null) await _fetchClassEntriesForGroupType(_selectedGroupId!, _selectedTypeId);
+                                            if (_selectedGroupId != null)
+                                              await _fetchClassEntriesForGroupType(
+                                                _selectedGroupId!,
+                                                _selectedTypeId,
+                                              );
                                           },
                                           child: AnimatedContainer(
-                                            duration: const Duration(milliseconds: 180),
-                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                            decoration: BoxDecoration(
-                                              color: selected ? const Color(0xFF185A9D) : Colors.white,
-                                              borderRadius: BorderRadius.circular(18),
-                                              border: Border.all(color: selected ? const Color(0xFF185A9D) : Colors.grey.shade300),
+                                            duration: const Duration(
+                                              milliseconds: 180,
                                             ),
-                                            child: Center(child: Text(label.toString(), style: TextStyle(color: selected ? Colors.white : Colors.black87, fontWeight: FontWeight.w600))),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 8,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: selected
+                                                  ? const Color(0xFF185A9D)
+                                                  : Colors.white,
+                                              borderRadius:
+                                                  BorderRadius.circular(18),
+                                              border: Border.all(
+                                                color: selected
+                                                    ? const Color(0xFF185A9D)
+                                                    : Colors.grey.shade300,
+                                              ),
+                                            ),
+                                            child: Center(
+                                              child: Text(
+                                                label.toString(),
+                                                style: TextStyle(
+                                                  color: selected
+                                                      ? Colors.white
+                                                      : Colors.black87,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
                                           ),
                                         );
                                       },
@@ -1217,36 +1592,72 @@ class _GroupsScreenState extends State<GroupsScreen> {
                                 // After selecting a type, show class-number chips for that type
                                 if (_selectedTypeId != null) ...[
                                   if (_classEntries.isEmpty)
-                                    Center(child: Text('لا توجد حلقات لهذه الرواية'))
+                                    Center(
+                                      child: Text('لا توجد حلقات لهذه الرواية'),
+                                    )
                                   else
                                     SizedBox(
                                       height: 56,
                                       child: ListView.separated(
                                         scrollDirection: Axis.horizontal,
                                         itemCount: _classEntries.length,
-                                        separatorBuilder: (_, __) => const SizedBox(width: 8),
+                                        separatorBuilder: (_, __) =>
+                                            const SizedBox(width: 8),
                                         itemBuilder: (context, idx) {
                                           final c = _classEntries[idx];
                                           final cidStr = c['id']!;
                                           final label = c['label']!;
-                                          final selected = _selectedClassId != null && _selectedClassId.toString() == cidStr;
+                                          final selected =
+                                              _selectedClassId != null &&
+                                              _selectedClassId.toString() ==
+                                                  cidStr;
                                           return GestureDetector(
                                             onTap: () async {
                                               setState(() {
-                                                _selectedClassId = int.tryParse(cidStr) ?? cidStr;
+                                                _selectedClassId =
+                                                    int.tryParse(cidStr) ??
+                                                    cidStr;
                                                 _students = [];
                                               });
-                                              if (_selectedGroupId != null) await _fetchStudentsForGroupTypeClass(_selectedGroupId!, _selectedTypeId, _selectedClassId);
+                                              if (_selectedGroupId != null)
+                                                await _fetchStudentsForGroupTypeClass(
+                                                  _selectedGroupId!,
+                                                  _selectedTypeId,
+                                                  _selectedClassId,
+                                                );
                                             },
                                             child: AnimatedContainer(
-                                              duration: const Duration(milliseconds: 180),
-                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                              decoration: BoxDecoration(
-                                                color: selected ? const Color(0xFF185A9D) : Colors.white,
-                                                borderRadius: BorderRadius.circular(18),
-                                                border: Border.all(color: selected ? const Color(0xFF185A9D) : Colors.grey.shade300),
+                                              duration: const Duration(
+                                                milliseconds: 180,
                                               ),
-                                              child: Center(child: Text(label.toString(), style: TextStyle(color: selected ? Colors.white : Colors.black87, fontWeight: FontWeight.w600))),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 12,
+                                                    vertical: 8,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: selected
+                                                    ? const Color(0xFF185A9D)
+                                                    : Colors.white,
+                                                borderRadius:
+                                                    BorderRadius.circular(18),
+                                                border: Border.all(
+                                                  color: selected
+                                                      ? const Color(0xFF185A9D)
+                                                      : Colors.grey.shade300,
+                                                ),
+                                              ),
+                                              child: Center(
+                                                child: Text(
+                                                  label.toString(),
+                                                  style: TextStyle(
+                                                    color: selected
+                                                        ? Colors.white
+                                                        : Colors.black87,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ),
                                             ),
                                           );
                                         },
@@ -1256,22 +1667,34 @@ class _GroupsScreenState extends State<GroupsScreen> {
                                   // Tabs: Tadabur / Sard (appear after class selected)
                                   if (_selectedClassId != null)
                                     Padding(
-                                      padding: const EdgeInsets.only(bottom: 8.0),
+                                      padding: const EdgeInsets.only(
+                                        bottom: 8.0,
+                                      ),
                                       child: Row(
                                         children: [
                                           ChoiceChip(
                                             label: const Text('تدبر'),
-                                            selected: _activeReportTab == 'tadabur',
+                                            selected:
+                                                _activeReportTab == 'tadabur',
                                             onSelected: (v) {
-                                              if (v) setState(() => _activeReportTab = 'tadabur');
+                                              if (v)
+                                                setState(
+                                                  () => _activeReportTab =
+                                                      'tadabur',
+                                                );
                                             },
                                           ),
                                           const SizedBox(width: 8),
                                           ChoiceChip(
                                             label: const Text('سرد'),
-                                            selected: _activeReportTab == 'sard',
+                                            selected:
+                                                _activeReportTab == 'sard',
                                             onSelected: (v) {
-                                              if (v) setState(() => _activeReportTab = 'sard');
+                                              if (v)
+                                                setState(
+                                                  () =>
+                                                      _activeReportTab = 'sard',
+                                                );
                                             },
                                           ),
                                         ],
@@ -1279,7 +1702,8 @@ class _GroupsScreenState extends State<GroupsScreen> {
                                     ),
                                 ],
                                 // show students table only after a class is selected and students fetched
-                                if (_selectedClassId != null && _students.isNotEmpty)
+                                if (_selectedClassId != null &&
+                                    _students.isNotEmpty)
                                   Expanded(
                                     child: SingleChildScrollView(
                                       scrollDirection: Axis.horizontal,
@@ -1287,116 +1711,362 @@ class _GroupsScreenState extends State<GroupsScreen> {
                                         scrollDirection: Axis.vertical,
                                         child: DataTable(
                                           columns: [
-                                            const DataColumn(label: Text('اسم الطالب')),
-                                            const DataColumn(label: Text('رقم الطالب')),
-                                            const DataColumn(label: Text('الرواية')),
-                                            const DataColumn(label: Text('الحلقة')),
-                                            const DataColumn(label: Text('حاضرة')),
-                                            const DataColumn(label: Text('غائبة')),
-                                            const DataColumn(label: Text('معتذرة')),
-                                            const DataColumn(label: Text('الإجراءات')),
+                                            const DataColumn(
+                                              label: Text('اسم الطالب'),
+                                            ),
+                                            const DataColumn(
+                                              label: Text('رقم الطالب'),
+                                            ),
+                                            const DataColumn(
+                                              label: Text('الرواية'),
+                                            ),
+                                            const DataColumn(
+                                              label: Text('الحلقة'),
+                                            ),
+                                            const DataColumn(
+                                              label: Text('حاضرة'),
+                                            ),
+                                            const DataColumn(
+                                              label: Text('غائبة'),
+                                            ),
+                                            const DataColumn(
+                                              label: Text('معتذرة'),
+                                            ),
+                                            const DataColumn(
+                                              label: Text('الإجراءات'),
+                                            ),
                                           ],
                                           rows: _students.map((row) {
-                                            final student = row['Student_Name'] ?? row['student_name'] ?? row['StudentName'] ?? '';
-                                            final studentCode = row['Student_Code'] ?? row['student_code'] ?? row['StudentCode'] ?? '';
-                                            final classId = row['Class_id'] ?? row['class_id'] ?? row['ClassId'];
-                                            final typeId = row['Type_id'] ?? row['type_id'] ?? row['TypeId'];
-                                            final classLabel = (row['Class_Number'] != null && row['Class_Number'].toString().isNotEmpty) ? row['Class_Number'].toString() : _resolveLookup(_classesMap, classId);
-                                            final typeLabel = (row['Type'] != null && row['Type'].toString().isNotEmpty) ? row['Type'].toString() : _resolveLookup(_typesMap, typeId);
-                                            return DataRow(cells: [
-                                              DataCell(Align(alignment: Alignment.centerRight, child: Text(student.toString(), textAlign: TextAlign.right))),
-                                              DataCell(Align(alignment: Alignment.centerRight, child: Text(studentCode.toString(), textAlign: TextAlign.right))),
-                                              DataCell(Align(alignment: Alignment.centerRight, child: Text(typeLabel, textAlign: TextAlign.right))),
-                                              DataCell(Align(alignment: Alignment.centerRight, child: Text(classLabel, textAlign: TextAlign.right))),
-                                              // Flags: Attend / Absent / Excuse / Tadabur / Sard
-                                              DataCell(Center(child: Checkbox(
-                                                value: _readFlag(row, _flagKeysFor('Attend')),
-                                                onChanged: (v) async {
-                                                  setState(() {
-                                                    final val = v ?? false;
-                                                    _setFlagForRow(row, 'Attend', val);
-                                                    if (val) {
-                                                      // enforce single-choice per-tab: uncheck others for this tab
-                                                      _setFlagForRow(row, 'Absent', false);
-                                                      _setFlagForRow(row, 'Excuse', false);
-                                                    }
-                                                    _hasUnsavedChanges = true;
-                                                  });
-                                                },
-                                              ))),
-                                              DataCell(Center(child: Checkbox(
-                                                value: _readFlag(row, _flagKeysFor('Absent')),
-                                                onChanged: (v) async {
-                                                  setState(() {
-                                                    final val = v ?? false;
-                                                    _setFlagForRow(row, 'Absent', val);
-                                                    if (val) {
-                                                      // enforce single-choice per-tab: uncheck others for this tab
-                                                      _setFlagForRow(row, 'Attend', false);
-                                                      _setFlagForRow(row, 'Excuse', false);
-                                                    }
-                                                    _hasUnsavedChanges = true;
-                                                  });
-                                                },
-                                              ))),
-                                              DataCell(Center(child: Checkbox(
-                                                value: _readFlag(row, _flagKeysFor('Excuse')),
-                                                onChanged: (v) async {
-                                                  setState(() {
-                                                    final val = v ?? false;
-                                                    _setFlagForRow(row, 'Excuse', val);
-                                                    if (val) {
-                                                      // enforce single-choice per-tab: uncheck others for this tab
-                                                      _setFlagForRow(row, 'Attend', false);
-                                                      _setFlagForRow(row, 'Absent', false);
-                                                    }
-                                                    _hasUnsavedChanges = true;
-                                                  });
-                                                },
-                                              ))),
-                                              DataCell(PopupMenuButton<String>(
-                                                onSelected: (v) async {
-                                                  if (v == 'view') {
-                                                    showDialog(context: context, builder: (c) => AlertDialog(
-                                                      title: const Text('تفاصيل الطالب'),
-                                                      content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                                        Text('اسم: ${student.toString()}'),
-                                                        Text('الرواية: $typeLabel'),
-                                                        Text('الحلقة: $classLabel'),
-                                                      ]),
-                                                      actions: [TextButton(onPressed: () => Navigator.of(c).pop(), child: const Text('إغلاق'))],
-                                                    ));
-                                                  } else if (v == 'delete') {
-                                                    final confirm = await showDialog<bool>(context: context, builder: (c) => AlertDialog(
-                                                      title: const Text('حذف'),
-                                                      content: const Text('هل تريد حذف هذا السجل؟'),
-                                                      actions: [
-                                                        TextButton(onPressed: () => Navigator.of(c).pop(false), child: const Text('لا')),
-                                                        TextButton(onPressed: () => Navigator.of(c).pop(true), child: const Text('نعم')),
-                                                      ],
-                                                    ));
-                                                      if (confirm == true) {
-                                                      try {
-                                                        await _client.from('Students').delete().eq('id', row['id']);
-                                                        if (_selectedGroupId != null) {
-                                                          if (_selectedClassId != null) {
-                                                            await _fetchStudentsForGroupTypeClass(_selectedGroupId!, _selectedTypeId, _selectedClassId);
-                                                          } else if (_selectedTypeId != null) {
-                                                            await _fetchClassEntriesForGroupType(_selectedGroupId!, _selectedTypeId);
+                                            final student =
+                                                row['Student_Name'] ??
+                                                row['student_name'] ??
+                                                row['StudentName'] ??
+                                                '';
+                                            final studentCode =
+                                                row['Student_Code'] ??
+                                                row['student_code'] ??
+                                                row['StudentCode'] ??
+                                                '';
+                                            final classId =
+                                                row['Class_id'] ??
+                                                row['class_id'] ??
+                                                row['ClassId'];
+                                            final typeId =
+                                                row['Type_id'] ??
+                                                row['type_id'] ??
+                                                row['TypeId'];
+                                            final classLabel =
+                                                (row['Class_Number'] != null &&
+                                                    row['Class_Number']
+                                                        .toString()
+                                                        .isNotEmpty)
+                                                ? row['Class_Number'].toString()
+                                                : _resolveLookup(
+                                                    _classesMap,
+                                                    classId,
+                                                  );
+                                            final typeLabel =
+                                                (row['Type'] != null &&
+                                                    row['Type']
+                                                        .toString()
+                                                        .isNotEmpty)
+                                                ? row['Type'].toString()
+                                                : _resolveLookup(
+                                                    _typesMap,
+                                                    typeId,
+                                                  );
+                                            return DataRow(
+                                              cells: [
+                                                DataCell(
+                                                  Align(
+                                                    alignment:
+                                                        Alignment.centerRight,
+                                                    child: Text(
+                                                      student.toString(),
+                                                      textAlign:
+                                                          TextAlign.right,
+                                                    ),
+                                                  ),
+                                                ),
+                                                DataCell(
+                                                  Align(
+                                                    alignment:
+                                                        Alignment.centerRight,
+                                                    child: Text(
+                                                      studentCode.toString(),
+                                                      textAlign:
+                                                          TextAlign.right,
+                                                    ),
+                                                  ),
+                                                ),
+                                                DataCell(
+                                                  Align(
+                                                    alignment:
+                                                        Alignment.centerRight,
+                                                    child: Text(
+                                                      typeLabel,
+                                                      textAlign:
+                                                          TextAlign.right,
+                                                    ),
+                                                  ),
+                                                ),
+                                                DataCell(
+                                                  Align(
+                                                    alignment:
+                                                        Alignment.centerRight,
+                                                    child: Text(
+                                                      classLabel,
+                                                      textAlign:
+                                                          TextAlign.right,
+                                                    ),
+                                                  ),
+                                                ),
+                                                // Flags: Attend / Absent / Excuse / Tadabur / Sard
+                                                DataCell(
+                                                  Center(
+                                                    child: Checkbox(
+                                                      value: _readFlag(
+                                                        row,
+                                                        _flagKeysFor('Attend'),
+                                                      ),
+                                                      onChanged: (v) async {
+                                                        setState(() {
+                                                          final val =
+                                                              v ?? false;
+                                                          _setFlagForRow(
+                                                            row,
+                                                            'Attend',
+                                                            val,
+                                                          );
+                                                          if (val) {
+                                                            // enforce single-choice per-tab: uncheck others for this tab
+                                                            _setFlagForRow(
+                                                              row,
+                                                              'Absent',
+                                                              false,
+                                                            );
+                                                            _setFlagForRow(
+                                                              row,
+                                                              'Excuse',
+                                                              false,
+                                                            );
+                                                          }
+                                                          _hasUnsavedChanges =
+                                                              true;
+                                                        });
+                                                      },
+                                                    ),
+                                                  ),
+                                                ),
+                                                DataCell(
+                                                  Center(
+                                                    child: Checkbox(
+                                                      value: _readFlag(
+                                                        row,
+                                                        _flagKeysFor('Absent'),
+                                                      ),
+                                                      onChanged: (v) async {
+                                                        setState(() {
+                                                          final val =
+                                                              v ?? false;
+                                                          _setFlagForRow(
+                                                            row,
+                                                            'Absent',
+                                                            val,
+                                                          );
+                                                          if (val) {
+                                                            // enforce single-choice per-tab: uncheck others for this tab
+                                                            _setFlagForRow(
+                                                              row,
+                                                              'Attend',
+                                                              false,
+                                                            );
+                                                            _setFlagForRow(
+                                                              row,
+                                                              'Excuse',
+                                                              false,
+                                                            );
+                                                          }
+                                                          _hasUnsavedChanges =
+                                                              true;
+                                                        });
+                                                      },
+                                                    ),
+                                                  ),
+                                                ),
+                                                DataCell(
+                                                  Center(
+                                                    child: Checkbox(
+                                                      value: _readFlag(
+                                                        row,
+                                                        _flagKeysFor('Excuse'),
+                                                      ),
+                                                      onChanged: (v) async {
+                                                        setState(() {
+                                                          final val =
+                                                              v ?? false;
+                                                          _setFlagForRow(
+                                                            row,
+                                                            'Excuse',
+                                                            val,
+                                                          );
+                                                          if (val) {
+                                                            // enforce single-choice per-tab: uncheck others for this tab
+                                                            _setFlagForRow(
+                                                              row,
+                                                              'Attend',
+                                                              false,
+                                                            );
+                                                            _setFlagForRow(
+                                                              row,
+                                                              'Absent',
+                                                              false,
+                                                            );
+                                                          }
+                                                          _hasUnsavedChanges =
+                                                              true;
+                                                        });
+                                                      },
+                                                    ),
+                                                  ),
+                                                ),
+                                                DataCell(
+                                                  PopupMenuButton<String>(
+                                                    onSelected: (v) async {
+                                                      if (v == 'view') {
+                                                        showDialog(
+                                                          context: context,
+                                                          builder: (c) => AlertDialog(
+                                                            title: const Text(
+                                                              'تفاصيل الطالب',
+                                                            ),
+                                                            content: Column(
+                                                              mainAxisSize:
+                                                                  MainAxisSize
+                                                                      .min,
+                                                              crossAxisAlignment:
+                                                                  CrossAxisAlignment
+                                                                      .start,
+                                                              children: [
+                                                                Text(
+                                                                  'اسم: ${student.toString()}',
+                                                                ),
+                                                                Text(
+                                                                  'الرواية: $typeLabel',
+                                                                ),
+                                                                Text(
+                                                                  'الحلقة: $classLabel',
+                                                                ),
+                                                              ],
+                                                            ),
+                                                            actions: [
+                                                              TextButton(
+                                                                onPressed: () =>
+                                                                    Navigator.of(
+                                                                      c,
+                                                                    ).pop(),
+                                                                child:
+                                                                    const Text(
+                                                                      'إغلاق',
+                                                                    ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        );
+                                                      } else if (v ==
+                                                          'delete') {
+                                                        final confirm = await showDialog<bool>(
+                                                          context: context,
+                                                          builder: (c) => AlertDialog(
+                                                            title: const Text(
+                                                              'حذف',
+                                                            ),
+                                                            content: const Text(
+                                                              'هل تريد حذف هذا السجل؟',
+                                                            ),
+                                                            actions: [
+                                                              TextButton(
+                                                                onPressed: () =>
+                                                                    Navigator.of(
+                                                                      c,
+                                                                    ).pop(
+                                                                      false,
+                                                                    ),
+                                                                child:
+                                                                    const Text(
+                                                                      'لا',
+                                                                    ),
+                                                              ),
+                                                              TextButton(
+                                                                onPressed: () =>
+                                                                    Navigator.of(
+                                                                      c,
+                                                                    ).pop(true),
+                                                                child:
+                                                                    const Text(
+                                                                      'نعم',
+                                                                    ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        );
+                                                        if (confirm == true) {
+                                                          try {
+                                                            await _client
+                                                                .from(
+                                                                  'Students',
+                                                                )
+                                                                .delete()
+                                                                .eq(
+                                                                  'id',
+                                                                  row['id'],
+                                                                );
+                                                            if (_selectedGroupId !=
+                                                                null) {
+                                                              if (_selectedClassId !=
+                                                                  null) {
+                                                                await _fetchStudentsForGroupTypeClass(
+                                                                  _selectedGroupId!,
+                                                                  _selectedTypeId,
+                                                                  _selectedClassId,
+                                                                );
+                                                              } else if (_selectedTypeId !=
+                                                                  null) {
+                                                                await _fetchClassEntriesForGroupType(
+                                                                  _selectedGroupId!,
+                                                                  _selectedTypeId,
+                                                                );
+                                                              }
+                                                            }
+                                                          } catch (e) {
+                                                            if (mounted)
+                                                              ScaffoldMessenger.of(
+                                                                context,
+                                                              ).showSnackBar(
+                                                                SnackBar(
+                                                                  content: Text(
+                                                                    'حذف فشل: $e',
+                                                                  ),
+                                                                ),
+                                                              );
                                                           }
                                                         }
-                                                      } catch (e) {
-                                                        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('حذف فشل: $e')));
                                                       }
-                                                    }
-                                                  }
-                                                },
-                                                itemBuilder: (_) => [
-                                                  const PopupMenuItem(value: 'view', child: Text('عرض')),
-                                                  const PopupMenuItem(value: 'delete', child: Text('حذف')),
-                                                ],
-                                              )),
-                                            ]);
+                                                    },
+                                                    itemBuilder: (_) => [
+                                                      const PopupMenuItem(
+                                                        value: 'view',
+                                                        child: Text('عرض'),
+                                                      ),
+                                                      const PopupMenuItem(
+                                                        value: 'delete',
+                                                        child: Text('حذف'),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                            );
                                           }).toList(),
                                         ),
                                       ),
@@ -1412,7 +2082,11 @@ class _GroupsScreenState extends State<GroupsScreen> {
     );
   }
 
-  Future<void> _loadLookupTable(String tableName, String nameColumn, Map<dynamic, String> dest) async {
+  Future<void> _loadLookupTable(
+    String tableName,
+    String nameColumn,
+    Map<dynamic, String> dest,
+  ) async {
     try {
       final res = await _client.from(tableName).select('id, "$nameColumn"');
       if (res is List) {
@@ -1496,7 +2170,10 @@ class _GroupsScreenState extends State<GroupsScreen> {
       await _fetchTypeEntriesForGroup(groupId);
     } catch (e) {
       debugPrint('GroupsScreen: fetch types error: $e');
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطأ أثناء تحميل الأنواع: $e')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('خطأ أثناء تحميل الأنواع: $e')));
     } finally {
       if (mounted) setState(() => _studentsLoading = false);
     }
@@ -1505,10 +2182,14 @@ class _GroupsScreenState extends State<GroupsScreen> {
   Future<void> _fetchTypeEntriesForGroup(int groupId) async {
     // Fetch distinct type ids and names for a given group so we can show chips immediately
     try {
-      var builder = _client.from('Students').select('Type_id, Types(id, "Type")').eq('Group_id', groupId);
+      var builder = _client
+          .from('Students')
+          .select('Type_id, Types(id, "Type")')
+          .eq('Group_id', groupId);
       // Apply restrictions if user has them
       if (!widget.userSession.hasFullAccess) {
-        if (_userClassId != null) builder = builder.eq('Class_id', _userClassId!);
+        if (_userClassId != null)
+          builder = builder.eq('Class_id', _userClassId!);
         if (_userTypeId != null) builder = builder.eq('Type_id', _userTypeId!);
       }
       final res = await builder.range(0, 1000);
@@ -1528,17 +2209,23 @@ class _GroupsScreenState extends State<GroupsScreen> {
         }
       }
       // Fallback: if any label is empty, load Types lookup table
-  final needsLookup = seen.values.any((v) => v.isEmpty);
+      final needsLookup = seen.values.any((v) => v.isEmpty);
       if (needsLookup) {
         await _loadLookupTable('Types', 'Type', _typesMap);
         final updated = <Map<String, String>>[];
         for (final k in seen.keys) {
-          final label = seen[k]!.isNotEmpty ? seen[k]! : (_typesMap.containsKey(int.tryParse(k) ?? k) ? _typesMap[int.tryParse(k) ?? k] ?? _typesMap[k] ?? k : k);
+          final label = seen[k]!.isNotEmpty
+              ? seen[k]!
+              : (_typesMap.containsKey(int.tryParse(k) ?? k)
+                    ? _typesMap[int.tryParse(k) ?? k] ?? _typesMap[k] ?? k
+                    : k);
           updated.add({'id': k, 'label': label});
         }
         _typeEntries = updated;
       } else {
-        _typeEntries = seen.entries.map((e) => {'id': e.key, 'label': e.value}).toList();
+        _typeEntries = seen.entries
+            .map((e) => {'id': e.key, 'label': e.value})
+            .toList();
       }
       // sort by label if available
       _typeEntries.sort((a, b) => a['label']!.compareTo(b['label']!));
@@ -1548,14 +2235,21 @@ class _GroupsScreenState extends State<GroupsScreen> {
     }
   }
 
-  Future<void> _fetchClassEntriesForGroupType(int groupId, dynamic typeId) async {
+  Future<void> _fetchClassEntriesForGroupType(
+    int groupId,
+    dynamic typeId,
+  ) async {
     // Fetch distinct class ids and numbers for a given group+type so we can show class chips
     setState(() {
       _studentsLoading = true;
       _classEntries = [];
     });
     try {
-      var builder = _client.from('Students').select('Class_id, Classes(id, "Class_Number")').eq('Group_id', groupId).eq('Type_id', typeId);
+      var builder = _client
+          .from('Students')
+          .select('Class_id, Classes(id, "Class_Number")')
+          .eq('Group_id', groupId)
+          .eq('Type_id', typeId);
       // Apply class restriction if user has class_id
       if (!widget.userSession.hasFullAccess && _userClassId != null) {
         builder = builder.eq('Class_id', _userClassId!);
@@ -1580,18 +2274,25 @@ class _GroupsScreenState extends State<GroupsScreen> {
         await _loadLookupTable('Classes', 'Class_Number', _classesMap);
         final updated = <Map<String, String>>[];
         for (final k in seen.keys) {
-          final label = seen[k]!.isNotEmpty ? seen[k]! : (_classesMap.containsKey(int.tryParse(k) ?? k) ? _classesMap[int.tryParse(k) ?? k] ?? _classesMap[k] ?? k : k);
+          final label = seen[k]!.isNotEmpty
+              ? seen[k]!
+              : (_classesMap.containsKey(int.tryParse(k) ?? k)
+                    ? _classesMap[int.tryParse(k) ?? k] ?? _classesMap[k] ?? k
+                    : k);
           updated.add({'id': k, 'label': label});
         }
         _classEntries = updated;
       } else {
-        _classEntries = seen.entries.map((e) => {'id': e.key, 'label': e.value}).toList();
+        _classEntries = seen.entries
+            .map((e) => {'id': e.key, 'label': e.value})
+            .toList();
       }
       // numeric-aware sort ascending by Class_Number when possible
       int parseNum(String s) {
         final n = int.tryParse(s);
         return n ?? 1 << 30; // non-numeric large value to push to end
       }
+
       _classEntries.sort((a, b) {
         final la = a['label'] ?? '';
         final lb = b['label'] ?? '';
@@ -1610,18 +2311,30 @@ class _GroupsScreenState extends State<GroupsScreen> {
     }
   }
 
-  Future<void> _fetchStudentsForGroupTypeClass(int groupId, dynamic typeId, dynamic classId) async {
+  Future<void> _fetchStudentsForGroupTypeClass(
+    int groupId,
+    dynamic typeId,
+    dynamic classId,
+  ) async {
     setState(() {
       _studentsLoading = true;
       _students = [];
     });
     try {
-      var builder = _client.from('Students').select('id, "Student_Name", "Student_Code", "Class_id", "Type_id", Classes(id, "Class_Number"), Types(id, "Type")').eq('Group_id', groupId).eq('Type_id', typeId);
+      var builder = _client
+          .from('Students')
+          .select(
+            'id, "Student_Name", "Student_Code", "Class_id", "Type_id", Classes(id, "Class_Number"), Types(id, "Type")',
+          )
+          .eq('Group_id', groupId)
+          .eq('Type_id', typeId);
       if (classId != null) builder = builder.eq('Class_id', classId);
       // Apply restrictions if user has them
       if (!widget.userSession.hasFullAccess) {
-        if (_userClassId != null) builder = builder.eq('Class_id', _userClassId!);
-        if (_userGroupId != null) builder = builder.eq('Group_id', _userGroupId!);
+        if (_userClassId != null)
+          builder = builder.eq('Class_id', _userClassId!);
+        if (_userGroupId != null)
+          builder = builder.eq('Group_id', _userGroupId!);
         if (_userTypeId != null) builder = builder.eq('Type_id', _userTypeId!);
       }
       final res = await builder.order('id', ascending: true).range(0, 1000);
@@ -1630,8 +2343,10 @@ class _GroupsScreenState extends State<GroupsScreen> {
         _students = rows.map((r) {
           final out = <String, dynamic>{};
           out['id'] = r['id'];
-          out['Student_Name'] = r['Student_Name'] ?? r['student_name'] ?? r['StudentName'];
-          out['Student_Code'] = r['Student_Code'] ?? r['student_code'] ?? r['StudentCode'];
+          out['Student_Name'] =
+              r['Student_Name'] ?? r['student_name'] ?? r['StudentName'];
+          out['Student_Code'] =
+              r['Student_Code'] ?? r['student_code'] ?? r['StudentCode'];
           out['Class_id'] = r['Class_id'] ?? r['class_id'];
           out['Type_id'] = r['Type_id'] ?? r['type_id'];
           if (r['Classes'] is List && (r['Classes'] as List).isNotEmpty) {
@@ -1644,7 +2359,8 @@ class _GroupsScreenState extends State<GroupsScreen> {
           }
           return out;
         }).toList();
-        if (_classesMap.isEmpty && _students.any((r) => r['Class_Number'] == null)) {
+        if (_classesMap.isEmpty &&
+            _students.any((r) => r['Class_Number'] == null)) {
           await _loadLookupTable('Classes', 'Class_Number', _classesMap);
         }
         if (_typesMap.isEmpty && _students.any((r) => r['Type'] == null)) {
@@ -1656,7 +2372,10 @@ class _GroupsScreenState extends State<GroupsScreen> {
     } catch (e) {
       _students = [];
       debugPrint('GroupsScreen: fetch students by type+class error: $e');
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error loading students for selection: $e')));
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading students for selection: $e')),
+        );
     } finally {
       if (mounted) setState(() => _studentsLoading = false);
       // Refresh whether tadabur/sard were already submitted for this class+date
@@ -1673,13 +2392,22 @@ class _GroupsScreenState extends State<GroupsScreen> {
     try {
       final dt = DateTime(_reportDate.year, _reportDate.month, _reportDate.day);
       final dateStr = dt.toIso8601String();
-      final studentIds = _students.map((s) => s['id']).whereType<int>().toList();
+      final studentIds = _students
+          .map((s) => s['id'])
+          .whereType<int>()
+          .toList();
       if (studentIds.isEmpty) return;
 
       // Check if any student has a row in Attendance_Tadabur for this date
       for (final id in studentIds) {
         try {
-          final tadRow = await _client.from('Attendance_Tadabur').select('id').eq('Student_id', id).eq('Report_date', dateStr).limit(1).maybeSingle();
+          final tadRow = await _client
+              .from('Attendance_Tadabur')
+              .select('id')
+              .eq('Student_id', id)
+              .eq('Report_date', dateStr)
+              .limit(1)
+              .maybeSingle();
           if (tadRow != null) {
             _tadaburSubmitted = true;
             break;
@@ -1692,7 +2420,13 @@ class _GroupsScreenState extends State<GroupsScreen> {
       // Check if any student has a row in Attendance_Sard for this date
       for (final id in studentIds) {
         try {
-          final sardRow = await _client.from('Attendance_Sard').select('id').eq('Student_id', id).eq('Report_date', dateStr).limit(1).maybeSingle();
+          final sardRow = await _client
+              .from('Attendance_Sard')
+              .select('id')
+              .eq('Student_id', id)
+              .eq('Report_date', dateStr)
+              .limit(1)
+              .maybeSingle();
           if (sardRow != null) {
             _sardSubmitted = true;
             break;
@@ -1708,57 +2442,69 @@ class _GroupsScreenState extends State<GroupsScreen> {
     }
   }
 
-    void _logDebug(String msg) {
-      // keep console output and an in-app buffer for inspection
-      debugPrint(msg);
-      final line = '${DateTime.now().toIso8601String()} - $msg';
-      if (mounted) {
-        setState(() {
+  void _logDebug(String msg) {
+    // keep console output and an in-app buffer for inspection
+    debugPrint(msg);
+    final line = '${DateTime.now().toIso8601String()} - $msg';
+    if (mounted) {
+      setState(() {
         _debugLogs.insert(0, line);
-        if (_debugLogs.length > 500) _debugLogs.removeRange(500, _debugLogs.length);
+        if (_debugLogs.length > 500)
+          _debugLogs.removeRange(500, _debugLogs.length);
       });
-      }
     }
+  }
 
-    // Get the attendance table name based on the active report tab.
-    String _getAttendanceTable() {
-      return _activeReportTab == 'tadabur' ? 'Attendance_Tadabur' : 'Attendance_Sard';
-    }
+  // Get the attendance table name based on the active report tab.
+  String _getAttendanceTable() {
+    return _activeReportTab == 'tadabur'
+        ? 'Attendance_Tadabur'
+        : 'Attendance_Sard';
+  }
 
   Future<void> _saveAttendance() async {
     if (_selectedClassId == null || _students.isEmpty) return;
-    
+
     // Validate restrictions: verify user is authorized for selected group/type/class
     if (!widget.userSession.hasFullAccess) {
       if (_userGroupId != null && _selectedGroupId != _userGroupId) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('غير مصرح لك بحفظ الحضور لهذه المجموعة')),
+            const SnackBar(
+              content: Text('غير مصرح لك بحفظ الحضور لهذه المجموعة'),
+            ),
           );
         }
         return;
       }
-      if (_userTypeId != null && _selectedTypeId?.toString() != _userTypeId.toString()) {
+      if (_userTypeId != null &&
+          _selectedTypeId?.toString() != _userTypeId.toString()) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('غير مصرح لك بحفظ الحضور لهذه الرواية')),
+            const SnackBar(
+              content: Text('غير مصرح لك بحفظ الحضور لهذه الرواية'),
+            ),
           );
         }
         return;
       }
       if (_userClassId != null) {
-        final selectedClassIdInt = int.tryParse(_selectedClassId?.toString() ?? '');
+        final selectedClassIdInt = int.tryParse(
+          _selectedClassId?.toString() ?? '',
+        );
         if (selectedClassIdInt != _userClassId) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('غير مصرح لك بحفظ الحضور لهذه الحلقة')),
+              const SnackBar(
+                content: Text('غير مصرح لك بحفظ الحضور لهذه الحلقة'),
+              ),
             );
           }
           return;
         }
       }
     }
-    
+
     setState(() => _savingAttendance = true);
     try {
       final dt = DateTime(_reportDate.year, _reportDate.month, _reportDate.day);
@@ -1778,7 +2524,13 @@ class _GroupsScreenState extends State<GroupsScreen> {
 
         try {
           // Check if a row exists for this student+date in the active tab's table
-          final existingRow = await _client.from(tableName).select('id').eq('Student_id', id).eq('Report_date', dateStr).limit(1).maybeSingle();
+          final existingRow = await _client
+              .from(tableName)
+              .select('id')
+              .eq('Student_id', id)
+              .eq('Report_date', dateStr)
+              .limit(1)
+              .maybeSingle();
 
           final payload = <String, dynamic>{
             'Student_id': id,
@@ -1790,7 +2542,10 @@ class _GroupsScreenState extends State<GroupsScreen> {
 
           if (existingRow != null) {
             // Update existing row
-            await _client.from(tableName).update(payload).eq('id', existingRow['id']);
+            await _client
+                .from(tableName)
+                .update(payload)
+                .eq('id', existingRow['id']);
             updated += 1;
             _logDebug('$tableName updated for student $id');
           } else {
@@ -1801,7 +2556,13 @@ class _GroupsScreenState extends State<GroupsScreen> {
           }
 
           // Verify
-          final verifyRow = await _client.from(tableName).select('id').eq('Student_id', id).eq('Report_date', dateStr).limit(1).maybeSingle();
+          final verifyRow = await _client
+              .from(tableName)
+              .select('id')
+              .eq('Student_id', id)
+              .eq('Report_date', dateStr)
+              .limit(1)
+              .maybeSingle();
           if (verifyRow != null) {
             verified += 1;
           } else {
@@ -1817,14 +2578,23 @@ class _GroupsScreenState extends State<GroupsScreen> {
       if (mounted) await _refreshTabSubmissionStatus();
 
       final msg = 'حفظ: $inserted مدرج، $updated محدث، $verified تم التحقق';
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(msg)));
       if (failures.isNotEmpty) {
         _logDebug('Attendance failures: ${failures.join('; ')}');
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('بعض السجلات فشلت: ${failures.length}')));
+        if (mounted)
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('بعض السجلات فشلت: ${failures.length}')),
+          );
       }
     } catch (e) {
       _logDebug('Save attendance error: $e');
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطأ حفظ الحضور: $e')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('خطأ حفظ الحضور: $e')));
     } finally {
       if (mounted) setState(() => _savingAttendance = false);
     }
@@ -1840,7 +2610,12 @@ class _GroupsScreenState extends State<GroupsScreen> {
       final id = s['id'];
       // Fetch from Attendance_Tadabur
       try {
-        final tadRows = await _client.from('Attendance_Tadabur').select('*').eq('Student_id', id).eq('Report_date', dateStr).range(0, 1000);
+        final tadRows = await _client
+            .from('Attendance_Tadabur')
+            .select('*')
+            .eq('Student_id', id)
+            .eq('Report_date', dateStr)
+            .range(0, 1000);
         if (tadRows is List) {
           for (final r in List<Map<String, dynamic>>.from(tadRows)) {
             r['_table'] = 'Tadabur';
@@ -1853,7 +2628,12 @@ class _GroupsScreenState extends State<GroupsScreen> {
 
       // Fetch from Attendance_Sard
       try {
-        final sardRows = await _client.from('Attendance_Sard').select('*').eq('Student_id', id).eq('Report_date', dateStr).range(0, 1000);
+        final sardRows = await _client
+            .from('Attendance_Sard')
+            .select('*')
+            .eq('Student_id', id)
+            .eq('Report_date', dateStr)
+            .range(0, 1000);
         if (sardRows is List) {
           for (final r in List<Map<String, dynamic>>.from(sardRows)) {
             r['_table'] = 'Sard';
@@ -1867,33 +2647,41 @@ class _GroupsScreenState extends State<GroupsScreen> {
 
     // Show dialog with found rows
     if (!mounted) return;
-    await showDialog<void>(context: context, builder: (c) {
-      return AlertDialog(
-        title: const Text('سجلات الحضور لهذه الحلقة/التاريخ'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: results.isEmpty
-              ? const Text('لا توجد سجلات')
-              : SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: results.map((r) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      child: Text(r.toString()),
-                    )).toList(),
+    await showDialog<void>(
+      context: context,
+      builder: (c) {
+        return AlertDialog(
+          title: const Text('سجلات الحضور لهذه الحلقة/التاريخ'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: results.isEmpty
+                ? const Text('لا توجد سجلات')
+                : SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: results
+                          .map(
+                            (r) => Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              child: Text(r.toString()),
+                            ),
+                          )
+                          .toList(),
+                    ),
                   ),
-                ),
-        ),
-        actions: [TextButton(onPressed: () => Navigator.of(c).pop(), child: const Text('إغلاق'))],
-      );
-    });
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(c).pop(),
+              child: const Text('إغلاق'),
+            ),
+          ],
+        );
+      },
+    );
   }
-
 
   // old grid-based build removed; new build renders top cards and per-group student list
 }
 
 // StudentsScreen is now provided by lib/screens/students_screen.dart
-
-
-

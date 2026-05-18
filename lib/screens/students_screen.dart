@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_session.dart';
 import '../widgets/responsive_table_container.dart';
+import '../widgets/searchable_lov_field.dart';
 
 class StudentsScreen extends StatefulWidget {
   // allow injecting a SupabaseClient for tests
@@ -39,7 +40,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
   final Map<int, List<Map<String, dynamic>>> _pageCache = {};
   final Map<int, bool> _pageHasNext = {};
   int _totalRows = 0;
-  
+
   // User's restrictions (fetched from Managers table)
   int? _userClassId;
   int? _userGroupId;
@@ -58,8 +59,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
 
   Future<void> _fetchUserRestrictions() async {
     // Skip if admin or no userId or no userSession
-    if (widget.userSession == null || 
-        widget.userSession!.hasFullAccess) {
+    if (widget.userSession == null || widget.userSession!.hasFullAccess) {
       return;
     }
 
@@ -86,7 +86,9 @@ class _StudentsScreenState extends State<StudentsScreen> {
       await _loadLookupTable('Classes', 'Class_Number', _classesMap);
       await _loadLookupTable('Types', 'Type', _typesMap);
 
-      if (_groupsMap.isNotEmpty || _classesMap.isNotEmpty || _typesMap.isNotEmpty) {
+      if (_groupsMap.isNotEmpty ||
+          _classesMap.isNotEmpty ||
+          _typesMap.isNotEmpty) {
         // populate options from lookup maps
         _groupOptions = _groupsMap.keys.whereType<int>().toList();
         _classOptions = _classesMap.keys.whereType<int>().toList();
@@ -107,14 +109,32 @@ class _StudentsScreenState extends State<StudentsScreen> {
         List<Map<String, dynamic>> classList = [];
 
         if (futures.isNotEmpty) {
-          if (futures[0] is List) typeList = List<Map<String, dynamic>>.from(futures[0]);
-          if (futures.length > 1 && futures[1] is List) classNumList = List<Map<String, dynamic>>.from(futures[1]);
-          if (futures.length > 2 && futures[2] is List) classList = List<Map<String, dynamic>>.from(futures[2]);
+          if (futures[0] is List)
+            typeList = List<Map<String, dynamic>>.from(futures[0]);
+          if (futures.length > 1 && futures[1] is List)
+            classNumList = List<Map<String, dynamic>>.from(futures[1]);
+          if (futures.length > 2 && futures[2] is List)
+            classList = List<Map<String, dynamic>>.from(futures[2]);
         }
 
-        final types = typeList.map((r) => r['Type_id'] as int?).where((v) => v != null).cast<int>().toSet().toList();
-        final classNums = classNumList.map((r) => r['Class_id'] as int?).where((v) => v != null).cast<int>().toSet().toList();
-        final groups = classList.map((r) => r['Group_id'] as int?).where((v) => v != null).cast<int>().toSet().toList();
+        final types = typeList
+            .map((r) => r['Type_id'] as int?)
+            .where((v) => v != null)
+            .cast<int>()
+            .toSet()
+            .toList();
+        final classNums = classNumList
+            .map((r) => r['Class_id'] as int?)
+            .where((v) => v != null)
+            .cast<int>()
+            .toSet()
+            .toList();
+        final groups = classList
+            .map((r) => r['Group_id'] as int?)
+            .where((v) => v != null)
+            .cast<int>()
+            .toSet()
+            .toList();
 
         types.sort();
         classNums.sort();
@@ -135,7 +155,11 @@ class _StudentsScreenState extends State<StudentsScreen> {
   }
 
   // Try to fetch a lookup table with given tableName, expecting an id and a name/title column
-  Future<void> _loadLookupTable(String tableName, String nameColumn, Map<dynamic, String> dest) async {
+  Future<void> _loadLookupTable(
+    String tableName,
+    String nameColumn,
+    Map<dynamic, String> dest,
+  ) async {
     try {
       final res = await _client.from(tableName).select('id, "$nameColumn"');
       if (res is List) {
@@ -217,7 +241,10 @@ class _StudentsScreenState extends State<StudentsScreen> {
           fetched = [];
         } else {
           final lastId = prevPage.last['id'];
-          final res = await query.gt('id', lastId).order('id', ascending: true).range(0, _limit);
+          final res = await query
+              .gt('id', lastId)
+              .order('id', ascending: true)
+              .range(0, _limit);
           if (res is List) fetched = List<Map<String, dynamic>>.from(res);
         }
       }
@@ -232,13 +259,21 @@ class _StudentsScreenState extends State<StudentsScreen> {
 
       // cache the page
       _pageCache[_pageIndex] = _rows;
-      debugPrint('StudentsScreen: fetched ${_rows.length} rows for page $_pageIndex');
-      if (_rows.isNotEmpty) debugPrint('First row keys: ${_rows.first.keys} values: ${_rows.first}');
+      debugPrint(
+        'StudentsScreen: fetched ${_rows.length} rows for page $_pageIndex',
+      );
+      if (_rows.isNotEmpty)
+        debugPrint(
+          'First row keys: ${_rows.first.keys} values: ${_rows.first}',
+        );
       // If lookup maps are empty (permissions or earlier load failure), try loading them now
       try {
-        if (_groupsMap.isEmpty) await _loadLookupTable('Groups', 'Group_Name', _groupsMap);
-        if (_classesMap.isEmpty) await _loadLookupTable('Classes', 'Class_Number', _classesMap);
-        if (_typesMap.isEmpty) await _loadLookupTable('Types', 'Type', _typesMap);
+        if (_groupsMap.isEmpty)
+          await _loadLookupTable('Groups', 'Group_Name', _groupsMap);
+        if (_classesMap.isEmpty)
+          await _loadLookupTable('Classes', 'Class_Number', _classesMap);
+        if (_typesMap.isEmpty)
+          await _loadLookupTable('Types', 'Type', _typesMap);
         if (mounted) setState(() {});
       } catch (_) {
         // ignore lookup reload failures
@@ -246,7 +281,9 @@ class _StudentsScreenState extends State<StudentsScreen> {
     } catch (e) {
       _rows = [];
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       setState(() => _loading = false);
@@ -285,10 +322,14 @@ class _StudentsScreenState extends State<StudentsScreen> {
     try {
       debugPrint('DEBUG: Starting delete for student ID: $id');
       debugPrint('DEBUG: User session: ${_client.auth.currentUser?.id}');
-      
-      final response = await _client.from('Students').delete().eq('id', id).select();
+
+      final response = await _client
+          .from('Students')
+          .delete()
+          .eq('id', id)
+          .select();
       debugPrint('DEBUG: Delete response: $response');
-      
+
       if (mounted) {
         debugPrint('DEBUG: Widget mounted, clearing cache and refreshing');
         // Clear cache to force fresh data fetch from server
@@ -298,9 +339,9 @@ class _StudentsScreenState extends State<StudentsScreen> {
           _pageIndex = 0;
         });
         await _fetchStudents();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم حذف الطالب بنجاح')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('تم حذف الطالب بنجاح')));
       } else {
         debugPrint('DEBUG: Widget not mounted after delete');
       }
@@ -308,21 +349,27 @@ class _StudentsScreenState extends State<StudentsScreen> {
       debugPrint('DEBUG: Delete error: $e');
       debugPrint('DEBUG: Stack trace: $stackTrace');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ في الحذف: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('خطأ في الحذف: $e')));
       }
     }
   }
 
   Future<void> _updateRow(dynamic id, Map<String, dynamic> changes) async {
     try {
-      debugPrint('DEBUG: Starting update for student ID: $id with changes: $changes');
+      debugPrint(
+        'DEBUG: Starting update for student ID: $id with changes: $changes',
+      );
       debugPrint('DEBUG: User session: ${_client.auth.currentUser?.id}');
-      
-      final response = await _client.from('Students').update(changes).eq('id', id).select();
+
+      final response = await _client
+          .from('Students')
+          .update(changes)
+          .eq('id', id)
+          .select();
       debugPrint('DEBUG: Update response: $response');
-      
+
       if (mounted) {
         debugPrint('DEBUG: Widget mounted, clearing cache and refreshing');
         // Clear cache to force fresh data fetch from server
@@ -332,9 +379,9 @@ class _StudentsScreenState extends State<StudentsScreen> {
           _pageIndex = 0;
         });
         await _fetchStudents();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم تحديث الطالب بنجاح')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('تم تحديث الطالب بنجاح')));
       } else {
         debugPrint('DEBUG: Widget not mounted after update');
       }
@@ -342,9 +389,9 @@ class _StudentsScreenState extends State<StudentsScreen> {
       debugPrint('DEBUG: Update error: $e');
       debugPrint('DEBUG: Stack trace: $stackTrace');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ في التحديث: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('خطأ في التحديث: $e')));
       }
     }
   }
@@ -357,11 +404,16 @@ class _StudentsScreenState extends State<StudentsScreen> {
         content: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: row.entries.map((e) => Text('${_prettifyColumn(e.key)}: ${e.value ?? ''}')).toList(),
+            children: row.entries
+                .map((e) => Text('${_prettifyColumn(e.key)}: ${e.value ?? ''}'))
+                .toList(),
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('إغلاق')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('إغلاق'),
+          ),
         ],
       ),
     );
@@ -369,19 +421,25 @@ class _StudentsScreenState extends State<StudentsScreen> {
 
   void _showEditDialog(Map<String, dynamic> row) {
     debugPrint('DEBUG: _showEditDialog called for ID: ${row['id']}');
-    
+
     try {
       debugPrint('DEBUG: Creating controllers...');
-      final nameController = TextEditingController(text: (row['Student_Name'] ?? '').toString());
-      final mobileController = TextEditingController(text: (row['Mobile_No'] ?? '').toString());
-      final codeController = TextEditingController(text: (row['Student_Code'] ?? '').toString());
-      
+      final nameController = TextEditingController(
+        text: (row['Student_Name'] ?? '').toString(),
+      );
+      final mobileController = TextEditingController(
+        text: (row['Mobile_No'] ?? '').toString(),
+      );
+      final codeController = TextEditingController(
+        text: (row['Student_Code'] ?? '').toString(),
+      );
+
       dynamic selectedGroupId = row['Group_id'];
       dynamic selectedTypeId = row['Type_id'];
-      
+
       // Get current class number for display
       String currentClassNumber = (row['Class_Number'] ?? '').toString();
-      
+
       debugPrint('DEBUG: Controllers created successfully');
 
       debugPrint('DEBUG: Calling showDialog...');
@@ -393,7 +451,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
           return StatefulBuilder(
             builder: (context, setDialogState) {
               // Filter classes based on selected group and type
-              
+
               return AlertDialog(
                 title: const Text('تعديل بيانات الطالب'),
                 content: SizedBox(
@@ -426,18 +484,27 @@ class _StudentsScreenState extends State<StudentsScreen> {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        
+
                         // Group dropdown
                         if (_groupOptions.isNotEmpty)
-                          DropdownButtonFormField<dynamic>(
-                            initialValue: _groupOptions.contains(selectedGroupId) ? selectedGroupId : (_groupOptions.isNotEmpty ? _groupOptions.first : null),
+                          SearchableLovField<dynamic>(
+                            value: _groupOptions.contains(selectedGroupId)
+                                ? selectedGroupId
+                                : (_groupOptions.isNotEmpty
+                                      ? _groupOptions.first
+                                      : null),
+                            labelText: 'المجموعة',
                             decoration: const InputDecoration(
                               labelText: 'المجموعة',
                               border: OutlineInputBorder(),
                             ),
                             items: _groupOptions.map((g) {
-                              final display = _groupsMap[g] ?? g?.toString() ?? '';
-                              return DropdownMenuItem(value: g, child: Text(display));
+                              final display =
+                                  _groupsMap[g] ?? g?.toString() ?? '';
+                              return SearchableLovItem<dynamic>(
+                                value: g,
+                                label: display,
+                              );
                             }).toList(),
                             onChanged: (value) {
                               setDialogState(() {
@@ -446,10 +513,12 @@ class _StudentsScreenState extends State<StudentsScreen> {
                             },
                           ),
                         const SizedBox(height: 12),
-                        
+
                         // Class Number text field (user enters the number they want)
                         TextField(
-                          controller: TextEditingController(text: currentClassNumber),
+                          controller: TextEditingController(
+                            text: currentClassNumber,
+                          ),
                           decoration: const InputDecoration(
                             labelText: 'رقم الحلقة',
                             border: OutlineInputBorder(),
@@ -461,18 +530,27 @@ class _StudentsScreenState extends State<StudentsScreen> {
                           },
                         ),
                         const SizedBox(height: 12),
-                        
+
                         // Type dropdown
                         if (_typeOptions.isNotEmpty)
-                          DropdownButtonFormField<dynamic>(
-                            initialValue: _typeOptions.contains(selectedTypeId) ? selectedTypeId : (_typeOptions.isNotEmpty ? _typeOptions.first : null),
+                          SearchableLovField<dynamic>(
+                            value: _typeOptions.contains(selectedTypeId)
+                                ? selectedTypeId
+                                : (_typeOptions.isNotEmpty
+                                      ? _typeOptions.first
+                                      : null),
+                            labelText: 'الرواية',
                             decoration: const InputDecoration(
                               labelText: 'الرواية',
                               border: OutlineInputBorder(),
                             ),
                             items: _typeOptions.map((t) {
-                              final display = _typesMap[t] ?? t?.toString() ?? '';
-                              return DropdownMenuItem(value: t, child: Text(display));
+                              final display =
+                                  _typesMap[t] ?? t?.toString() ?? '';
+                              return SearchableLovItem<dynamic>(
+                                value: t,
+                                label: display,
+                              );
                             }).toList(),
                             onChanged: (value) {
                               setDialogState(() {
@@ -495,38 +573,52 @@ class _StudentsScreenState extends State<StudentsScreen> {
                   ElevatedButton(
                     onPressed: () async {
                       debugPrint('DEBUG: Save clicked');
-                      
+
                       final changes = <String, dynamic>{
                         'Student_Name': nameController.text.trim(),
                         'Mobile_No': mobileController.text.trim(),
                         'Student_Code': codeController.text.trim(),
                       };
-                      
-                      if (selectedGroupId != null) changes['Group_id'] = selectedGroupId;
-                      if (selectedTypeId != null) changes['Type_id'] = selectedTypeId;
-                      
+
+                      if (selectedGroupId != null)
+                        changes['Group_id'] = selectedGroupId;
+                      if (selectedTypeId != null)
+                        changes['Type_id'] = selectedTypeId;
+
                       // Find the Class_id based on Class_Number, Group_id, and Type_id
                       if (currentClassNumber.isNotEmpty) {
                         try {
-                          final classNumberInt = int.tryParse(currentClassNumber);
-                          if (classNumberInt != null && selectedGroupId != null && selectedTypeId != null) {
-                            debugPrint('DEBUG: Looking up Class_id for Class_Number=$classNumberInt, Group_id=$selectedGroupId, Type_id=$selectedTypeId');
-                            
+                          final classNumberInt = int.tryParse(
+                            currentClassNumber,
+                          );
+                          if (classNumberInt != null &&
+                              selectedGroupId != null &&
+                              selectedTypeId != null) {
+                            debugPrint(
+                              'DEBUG: Looking up Class_id for Class_Number=$classNumberInt, Group_id=$selectedGroupId, Type_id=$selectedTypeId',
+                            );
+
                             final classResult = await _client
                                 .from('Classes')
                                 .select('id')
                                 .eq('Class_Number', classNumberInt)
                                 .maybeSingle();
-                            
+
                             if (classResult != null) {
                               final foundClassId = classResult['id'];
-                              debugPrint('DEBUG: Found Class_id: $foundClassId');
+                              debugPrint(
+                                'DEBUG: Found Class_id: $foundClassId',
+                              );
                               changes['Class_id'] = foundClassId;
                             } else {
                               debugPrint('DEBUG: No matching class found');
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('لم يتم العثور على حلقة برقم $classNumberInt')),
+                                  SnackBar(
+                                    content: Text(
+                                      'لم يتم العثور على حلقة برقم $classNumberInt',
+                                    ),
+                                  ),
                                 );
                                 return;
                               }
@@ -536,7 +628,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                           debugPrint('DEBUG: Error looking up Class_id: $e');
                         }
                       }
-                      
+
                       Navigator.of(dialogContext).pop();
                       debugPrint('DEBUG: Calling _updateRow...');
                       _updateRow(row['id'], changes);
@@ -563,10 +655,13 @@ class _StudentsScreenState extends State<StudentsScreen> {
     final mobileController = TextEditingController();
     final codeController = TextEditingController();
     // Pre-select if user has restrictions
-    final hasGroupRestriction = widget.userSession?.isAdmin == false && _userGroupId != null;
-    final hasClassRestriction = widget.userSession?.isAdmin == false && _userClassId != null;
-    final hasTypeRestriction = widget.userSession?.isAdmin == false && _userTypeId != null;
-    
+    final hasGroupRestriction =
+        widget.userSession?.isAdmin == false && _userGroupId != null;
+    final hasClassRestriction =
+        widget.userSession?.isAdmin == false && _userClassId != null;
+    final hasTypeRestriction =
+        widget.userSession?.isAdmin == false && _userTypeId != null;
+
     dynamic selectedGroup = hasGroupRestriction ? _userGroupId : null;
     dynamic selectedClass = hasClassRestriction ? _userClassId : null;
     dynamic selectedType = hasTypeRestriction ? _userTypeId : null;
@@ -603,14 +698,17 @@ class _StudentsScreenState extends State<StudentsScreen> {
                     TextField(
                       controller: codeController,
                       decoration: const InputDecoration(
-                        labelText: 'كود الطالب (يُستخدم إذا لم يوجد طلاب في المجموعة)',
+                        labelText:
+                            'كود الطالب (يُستخدم إذا لم يوجد طلاب في المجموعة)',
                         border: OutlineInputBorder(),
                       ),
                       keyboardType: TextInputType.number,
                     ),
                     const SizedBox(height: 16),
-                    DropdownButtonFormField<dynamic>(
-                      initialValue: selectedGroup,
+                    SearchableLovField<dynamic>(
+                      value: selectedGroup,
+                      labelText: 'المجموعة',
+                      enabled: !hasGroupRestriction,
                       decoration: InputDecoration(
                         labelText: 'المجموعة',
                         border: const OutlineInputBorder(),
@@ -620,7 +718,10 @@ class _StudentsScreenState extends State<StudentsScreen> {
                       ),
                       items: _groupOptions.map((g) {
                         final display = _groupsMap[g] ?? g?.toString() ?? '';
-                        return DropdownMenuItem(value: g, child: Text(display));
+                        return SearchableLovItem<dynamic>(
+                          value: g,
+                          label: display,
+                        );
                       }).toList(),
                       onChanged: hasGroupRestriction
                           ? null
@@ -629,8 +730,10 @@ class _StudentsScreenState extends State<StudentsScreen> {
                             },
                     ),
                     const SizedBox(height: 16),
-                    DropdownButtonFormField<dynamic>(
-                      initialValue: selectedClass,
+                    SearchableLovField<dynamic>(
+                      value: selectedClass,
+                      labelText: 'رقم الحلقة',
+                      enabled: !hasClassRestriction,
                       decoration: InputDecoration(
                         labelText: 'رقم الحلقة',
                         border: const OutlineInputBorder(),
@@ -641,7 +744,10 @@ class _StudentsScreenState extends State<StudentsScreen> {
                       ),
                       items: _classOptions.map((c) {
                         final display = _classesMap[c] ?? c?.toString() ?? '';
-                        return DropdownMenuItem(value: c, child: Text(display));
+                        return SearchableLovItem<dynamic>(
+                          value: c,
+                          label: display,
+                        );
                       }).toList(),
                       // Disable if user has class restriction
                       onChanged: hasClassRestriction
@@ -651,8 +757,10 @@ class _StudentsScreenState extends State<StudentsScreen> {
                             },
                     ),
                     const SizedBox(height: 16),
-                    DropdownButtonFormField<dynamic>(
-                      initialValue: selectedType,
+                    SearchableLovField<dynamic>(
+                      value: selectedType,
+                      labelText: 'الرواية',
+                      enabled: !hasTypeRestriction,
                       decoration: InputDecoration(
                         labelText: 'الرواية',
                         border: const OutlineInputBorder(),
@@ -662,7 +770,10 @@ class _StudentsScreenState extends State<StudentsScreen> {
                       ),
                       items: _typeOptions.map((t) {
                         final display = _typesMap[t] ?? t?.toString() ?? '';
-                        return DropdownMenuItem(value: t, child: Text(display));
+                        return SearchableLovItem<dynamic>(
+                          value: t,
+                          label: display,
+                        );
                       }).toList(),
                       onChanged: hasTypeRestriction
                           ? null
@@ -698,9 +809,15 @@ class _StudentsScreenState extends State<StudentsScreen> {
                     };
 
                     // Resolve group / class / type respecting restrictions
-                    final targetGroupId = hasGroupRestriction ? _userGroupId : selectedGroup;
-                    final targetClassId = hasClassRestriction ? _userClassId : selectedClass;
-                    final targetTypeId = hasTypeRestriction ? _userTypeId : selectedType;
+                    final targetGroupId = hasGroupRestriction
+                        ? _userGroupId
+                        : selectedGroup;
+                    final targetClassId = hasClassRestriction
+                        ? _userClassId
+                        : selectedClass;
+                    final targetTypeId = hasTypeRestriction
+                        ? _userTypeId
+                        : selectedType;
 
                     if (targetGroupId == null) {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -710,8 +827,10 @@ class _StudentsScreenState extends State<StudentsScreen> {
                     }
 
                     studentData['Group_id'] = targetGroupId;
-                    if (targetClassId != null) studentData['Class_id'] = targetClassId;
-                    if (targetTypeId != null) studentData['Type_id'] = targetTypeId;
+                    if (targetClassId != null)
+                      studentData['Class_id'] = targetClassId;
+                    if (targetTypeId != null)
+                      studentData['Type_id'] = targetTypeId;
 
                     // Auto-generate Student_Code: max(Student_Code) for the group + 1.
                     // If no students exist in the group, require user input.
@@ -732,7 +851,11 @@ class _StudentsScreenState extends State<StudentsScreen> {
                       final manualCode = codeController.text.trim();
                       if (manualCode.isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('لا يوجد طلاب في هذه المجموعة، يرجى إدخال كود الطالب يدويًا')),
+                          const SnackBar(
+                            content: Text(
+                              'لا يوجد طلاب في هذه المجموعة، يرجى إدخال كود الطالب يدويًا',
+                            ),
+                          ),
                         );
                         return;
                       }
@@ -772,7 +895,12 @@ class _StudentsScreenState extends State<StudentsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('الطلاب'),
-        actions: [IconButton(icon: const Icon(Icons.refresh), onPressed: _fetchStudents)],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _fetchStudents,
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddStudentDialog,
@@ -789,56 +917,120 @@ class _StudentsScreenState extends State<StudentsScreen> {
                 final fields = [
                   SizedBox(
                     width: compact ? double.infinity : 170,
-                    child: DropdownButtonFormField<dynamic>(
-                      initialValue: _filterType,
-                      items: [DropdownMenuItem<dynamic>(value: null, child: Text('All'))]
-                          .followedBy(_typeOptions.map((t) {
-                        final display = _typesMap[t] ?? (t?.toString() ?? '');
-                        return DropdownMenuItem(value: t, child: Text(display));
-                      })).toList(),
-                      onChanged: _lookupsLoading ? null : (v) => setState(() => _filterType = v),
+                    child: SearchableLovField<dynamic>(
+                      value: _filterType,
+                      labelText: 'الرواية',
+                      enabled: !_lookupsLoading,
+                      items: [
+                        const SearchableLovItem<dynamic>(
+                          value: null,
+                          label: 'All',
+                        ),
+                        ..._typeOptions.map((t) {
+                          final display = _typesMap[t] ?? (t?.toString() ?? '');
+                          return SearchableLovItem<dynamic>(
+                            value: t,
+                            label: display,
+                          );
+                        }),
+                      ],
+                      onChanged: _lookupsLoading
+                          ? null
+                          : (v) => setState(() => _filterType = v),
                       decoration: InputDecoration(
                         labelText: 'الرواية',
-                        suffixIcon: _lookupsLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : null,
+                        suffixIcon: _lookupsLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : null,
                       ),
                     ),
                   ),
                   SizedBox(
                     width: compact ? double.infinity : 170,
-                    child: DropdownButtonFormField<dynamic>(
-                      initialValue: _filterClassNumber,
-                      items: [DropdownMenuItem<dynamic>(value: null, child: Text('All'))]
-                          .followedBy(_classOptions.map((t) {
-                        final display = _classesMap[t] ?? (t?.toString() ?? '');
-                        return DropdownMenuItem(value: t, child: Text(display));
-                      })).toList(),
-                      onChanged: _lookupsLoading ? null : (v) => setState(() => _filterClassNumber = v),
+                    child: SearchableLovField<dynamic>(
+                      value: _filterClassNumber,
+                      labelText: 'الحلقة',
+                      enabled: !_lookupsLoading,
+                      items: [
+                        const SearchableLovItem<dynamic>(
+                          value: null,
+                          label: 'All',
+                        ),
+                        ..._classOptions.map((t) {
+                          final display =
+                              _classesMap[t] ?? (t?.toString() ?? '');
+                          return SearchableLovItem<dynamic>(
+                            value: t,
+                            label: display,
+                          );
+                        }),
+                      ],
+                      onChanged: _lookupsLoading
+                          ? null
+                          : (v) => setState(() => _filterClassNumber = v),
                       decoration: InputDecoration(
                         labelText: 'الحلقة',
-                        suffixIcon: _lookupsLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : null,
+                        suffixIcon: _lookupsLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : null,
                       ),
                     ),
                   ),
                   SizedBox(
                     width: compact ? double.infinity : 170,
-                    child: DropdownButtonFormField<dynamic>(
-                      initialValue: _filterClass,
-                      items: [DropdownMenuItem<dynamic>(value: null, child: Text('All'))]
-                          .followedBy(_groupOptions.map((t) {
-                        final display = _groupsMap[t] ?? (t?.toString() ?? '');
-                        return DropdownMenuItem(value: t, child: Text(display));
-                      })).toList(),
-                      onChanged: _lookupsLoading ? null : (v) => setState(() => _filterClass = v),
+                    child: SearchableLovField<dynamic>(
+                      value: _filterClass,
+                      labelText: 'المجموعة',
+                      enabled: !_lookupsLoading,
+                      items: [
+                        const SearchableLovItem<dynamic>(
+                          value: null,
+                          label: 'All',
+                        ),
+                        ..._groupOptions.map((t) {
+                          final display =
+                              _groupsMap[t] ?? (t?.toString() ?? '');
+                          return SearchableLovItem<dynamic>(
+                            value: t,
+                            label: display,
+                          );
+                        }),
+                      ],
+                      onChanged: _lookupsLoading
+                          ? null
+                          : (v) => setState(() => _filterClass = v),
                       decoration: InputDecoration(
                         labelText: 'المجموعة',
-                        suffixIcon: _lookupsLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : null,
+                        suffixIcon: _lookupsLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : null,
                       ),
                     ),
                   ),
                   SizedBox(
                     width: compact ? double.infinity : 220,
                     child: TextField(
-                      decoration: const InputDecoration(labelText: 'Search name'),
+                      decoration: const InputDecoration(
+                        labelText: 'Search name',
+                      ),
                       onChanged: _onSearchNameChanged,
                     ),
                   ),
@@ -876,8 +1068,24 @@ class _StudentsScreenState extends State<StudentsScreen> {
                 if (compact) {
                   return Column(
                     children: [
-                      ...fields.map((w) => Padding(padding: const EdgeInsets.only(bottom: 8), child: w)),
-                      Row(children: actions.map((w) => Padding(padding: const EdgeInsetsDirectional.only(end: 8), child: w)).toList()),
+                      ...fields.map(
+                        (w) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: w,
+                        ),
+                      ),
+                      Row(
+                        children: actions
+                            .map(
+                              (w) => Padding(
+                                padding: const EdgeInsetsDirectional.only(
+                                  end: 8,
+                                ),
+                                child: w,
+                              ),
+                            )
+                            .toList(),
+                      ),
                     ],
                   );
                 }
@@ -886,8 +1094,18 @@ class _StudentsScreenState extends State<StudentsScreen> {
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
-                      ...fields.map((w) => Padding(padding: const EdgeInsetsDirectional.only(end: 8), child: w)),
-                      ...actions.map((w) => Padding(padding: const EdgeInsetsDirectional.only(end: 8), child: w)),
+                      ...fields.map(
+                        (w) => Padding(
+                          padding: const EdgeInsetsDirectional.only(end: 8),
+                          child: w,
+                        ),
+                      ),
+                      ...actions.map(
+                        (w) => Padding(
+                          padding: const EdgeInsetsDirectional.only(end: 8),
+                          child: w,
+                        ),
+                      ),
                     ],
                   ),
                 );
@@ -898,19 +1116,19 @@ class _StudentsScreenState extends State<StudentsScreen> {
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
                 : _rows.isEmpty
-                    ? const Center(child: Text('لا توجد سجلات'))
-                    : ResponsiveTableContainer(
-                        thumbVisibility: isNarrow,
-                        child: StudentsTable(
-                          rows: _rows,
-                          onView: _showRowDetails,
-                          onEdit: _showEditDialog,
-                          onDelete: _deleteRow,
-                          groupsMap: _groupsMap.isNotEmpty ? _groupsMap : null,
-                          typesMap: _typesMap.isNotEmpty ? _typesMap : null,
-                          classesMap: _classesMap.isNotEmpty ? _classesMap : null,
-                        ),
-                      ),
+                ? const Center(child: Text('لا توجد سجلات'))
+                : ResponsiveTableContainer(
+                    thumbVisibility: isNarrow,
+                    child: StudentsTable(
+                      rows: _rows,
+                      onView: _showRowDetails,
+                      onEdit: _showEditDialog,
+                      onDelete: _deleteRow,
+                      groupsMap: _groupsMap.isNotEmpty ? _groupsMap : null,
+                      typesMap: _typesMap.isNotEmpty ? _typesMap : null,
+                      classesMap: _classesMap.isNotEmpty ? _classesMap : null,
+                    ),
+                  ),
           ),
           // pagination controls
           Padding(
@@ -926,8 +1144,14 @@ class _StudentsScreenState extends State<StudentsScreen> {
                 final controls = Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    IconButton(onPressed: canPrev ? _prevPage : null, icon: const Icon(Icons.chevron_left)),
-                    IconButton(onPressed: canNext ? _nextPage : null, icon: const Icon(Icons.chevron_right)),
+                    IconButton(
+                      onPressed: canPrev ? _prevPage : null,
+                      icon: const Icon(Icons.chevron_left),
+                    ),
+                    IconButton(
+                      onPressed: canNext ? _nextPage : null,
+                      icon: const Icon(Icons.chevron_right),
+                    ),
                   ],
                 );
 
@@ -935,7 +1159,11 @@ class _StudentsScreenState extends State<StudentsScreen> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(_totalRows > 0 ? 'Showing ${start + 1} - $end of $_totalRows' : 'Showing ${start + 1} - $end'),
+                      Text(
+                        _totalRows > 0
+                            ? 'Showing ${start + 1} - $end of $_totalRows'
+                            : 'Showing ${start + 1} - $end',
+                      ),
                       controls,
                     ],
                   );
@@ -944,13 +1172,17 @@ class _StudentsScreenState extends State<StudentsScreen> {
                 return Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(_totalRows > 0 ? 'Showing ${start + 1} - $end of $_totalRows' : 'Showing ${start + 1} - $end'),
+                    Text(
+                      _totalRows > 0
+                          ? 'Showing ${start + 1} - $end of $_totalRows'
+                          : 'Showing ${start + 1} - $end',
+                    ),
                     controls,
                   ],
                 );
               },
             ),
-          )
+          ),
         ],
       ),
     );
@@ -958,12 +1190,18 @@ class _StudentsScreenState extends State<StudentsScreen> {
 
   String _prettifyColumn(String key) {
     var s = key.replaceAll('_', ' ');
-    s = s.replaceAllMapped(RegExp(r'([a-z0-9])([A-Z])'), (m) => '${m[1]} ${m[2]}');
+    s = s.replaceAllMapped(
+      RegExp(r'([a-z0-9])([A-Z])'),
+      (m) => '${m[1]} ${m[2]}',
+    );
     final parts = s.split(RegExp(r"\s+"))..removeWhere((p) => p.trim().isEmpty);
-    final capitalized = parts.map((w) {
-      if (w.isEmpty) return w;
-      return w[0].toUpperCase() + (w.length > 1 ? w.substring(1).toLowerCase() : '');
-    }).join(' ');
+    final capitalized = parts
+        .map((w) {
+          if (w.isEmpty) return w;
+          return w[0].toUpperCase() +
+              (w.length > 1 ? w.substring(1).toLowerCase() : '');
+        })
+        .join(' ');
     return capitalized;
   }
 }
@@ -983,9 +1221,9 @@ class StudentsTable extends StatelessWidget {
     this.onView,
     this.onEdit,
     this.onDelete,
-  this.groupsMap,
-  this.typesMap,
-  this.classesMap,
+    this.groupsMap,
+    this.typesMap,
+    this.classesMap,
   });
 
   // Compute filtered keys for both columns and rows so they stay aligned.
@@ -1022,7 +1260,8 @@ class StudentsTable extends StatelessWidget {
     for (var i = 0; i < keys.length; i++) {
       final k = keys[i];
       final label = labels[k] ?? _prettifyColumn(k.toString());
-      if (mobileLabels.contains(label) || label.toString().toLowerCase().contains('mobile')) {
+      if (mobileLabels.contains(label) ||
+          label.toString().toLowerCase().contains('mobile')) {
         mobileIndex = i;
         break;
       }
@@ -1051,10 +1290,20 @@ class StudentsTable extends StatelessWidget {
     }
 
     // additionally remove any keys whose final label matches the global unwanted list
-    final unwantedLabels = {'رقم الصف', 'المجموعة', 'النوع', 'class number', 'class no', 'class_number', 'class'};
+    final unwantedLabels = {
+      'رقم الصف',
+      'المجموعة',
+      'النوع',
+      'class number',
+      'class no',
+      'class_number',
+      'class',
+    };
     final unwantedLower = unwantedLabels.map((s) => s.toLowerCase()).toSet();
     filteredKeys.removeWhere((k) {
-      final label = (labels[k] ?? _prettifyColumn(k.toString())).toString().toLowerCase();
+      final label = (labels[k] ?? _prettifyColumn(k.toString()))
+          .toString()
+          .toLowerCase();
       return unwantedLower.contains(label);
     });
 
@@ -1065,7 +1314,9 @@ class StudentsTable extends StatelessWidget {
     if (rows.isEmpty) return [];
     // determine raw keys and separate FK id keys
     final rawKeys = rows.first.keys.where((k) => k != 'created_at').toList();
-    final fkKeys = rawKeys.where((k) => k.toString().toLowerCase().endsWith('_id')).toList();
+    final fkKeys = rawKeys
+        .where((k) => k.toString().toLowerCase().endsWith('_id'))
+        .toList();
     final keys = rawKeys.where((k) => !fkKeys.contains(k)).toList();
 
     final Map<String, String> labels = {
@@ -1098,18 +1349,30 @@ class StudentsTable extends StatelessWidget {
       'Mobile_no': 'الجوال',
       'mobile_no': 'الجوال',
       'MobileNo': 'الجوال',
-  // handle header keys that include space/period
-  'Mobile No': 'الجوال',
-  'Mobile No.': 'الجوال',
+      // handle header keys that include space/period
+      'Mobile No': 'الجوال',
+      'Mobile No.': 'الجوال',
     };
     // compute filtered keys using the same logic as rows to keep columns/rows aligned
     final filteredKeys = _computeFilteredKeys(keys);
 
-  final cols = filteredKeys.map((k) => DataColumn(label: Text(labels[k] ?? _prettifyColumn(k.toString()), textAlign: TextAlign.right))).toList();
+    final cols = filteredKeys
+        .map(
+          (k) => DataColumn(
+            label: Text(
+              labels[k] ?? _prettifyColumn(k.toString()),
+              textAlign: TextAlign.right,
+            ),
+          ),
+        )
+        .toList();
     // for each fk key, add a friendly column (e.g., Group_id -> Group)
     // but skip creating a derived column if the row already includes a direct name column
     for (final fk in fkKeys) {
-      final name = fk.toString().replaceAll(RegExp(r'_id\$', caseSensitive: false), '');
+      final name = fk.toString().replaceAll(
+        RegExp(r'_id\$', caseSensitive: false),
+        '',
+      );
       // if any existing key already contains the base name (e.g. 'Group_Name' or 'group'), skip
       final base = name.toString().toLowerCase();
       final hasDirect = rawKeys.any((k) {
@@ -1127,7 +1390,9 @@ class StudentsTable extends StatelessWidget {
   List<DataRow> _buildRows() {
     // split out fk keys from normal keys
     final rawKeys = rows.first.keys.where((k) => k != 'created_at').toList();
-    final fkKeys = rawKeys.where((k) => k.toString().toLowerCase().endsWith('_id')).toList();
+    final fkKeys = rawKeys
+        .where((k) => k.toString().toLowerCase().endsWith('_id'))
+        .toList();
     final keys = rawKeys.where((k) => !fkKeys.contains(k)).toList();
 
     // compute filtered keys with same logic as _buildColumns
@@ -1138,7 +1403,17 @@ class StudentsTable extends StatelessWidget {
       // normal cells first (use filteredKeys to match columns)
       for (final k in filteredKeys) {
         final v = row[k];
-        cells.add(DataCell(Align(alignment: Alignment.centerRight, child: Text(v == null ? '' : v.toString(), textAlign: TextAlign.right))));
+        cells.add(
+          DataCell(
+            Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                v == null ? '' : v.toString(),
+                textAlign: TextAlign.right,
+              ),
+            ),
+          ),
+        );
       }
 
       // FK-derived friendly cells (prefer direct name fields returned by server)
@@ -1149,71 +1424,143 @@ class StudentsTable extends StatelessWidget {
         // Prefer direct name fields returned by the server (if you selected them), e.g. 'Group_Name', 'Class_Number', 'Type'
         String? directName;
         if (lower.contains('group')) {
-          directName = row['Group_Name']?.toString() ?? row['group_name']?.toString() ?? row['GroupName']?.toString();
+          directName =
+              row['Group_Name']?.toString() ??
+              row['group_name']?.toString() ??
+              row['GroupName']?.toString();
         } else if (lower.contains('class')) {
-          directName = row['Class_Number']?.toString() ?? row['class_number']?.toString() ?? row['ClassNumber']?.toString();
+          directName =
+              row['Class_Number']?.toString() ??
+              row['class_number']?.toString() ??
+              row['ClassNumber']?.toString();
         } else if (lower.contains('type')) {
-          directName = row['Type']?.toString() ?? row['type']?.toString() ?? row['TypeName']?.toString();
+          directName =
+              row['Type']?.toString() ??
+              row['type']?.toString() ??
+              row['TypeName']?.toString();
         }
 
         if (directName != null && directName.isNotEmpty) {
-          cells.add(DataCell(Align(alignment: Alignment.centerRight, child: Text(directName, textAlign: TextAlign.right))));
+          cells.add(
+            DataCell(
+              Align(
+                alignment: Alignment.centerRight,
+                child: Text(directName, textAlign: TextAlign.right),
+              ),
+            ),
+          );
           continue;
         }
 
         // Fallback to lookup maps
-        if ((lower.contains('group') || lower.contains('group_id')) && groupsMap != null && v != null) {
-          cells.add(DataCell(Align(alignment: Alignment.centerRight, child: Text(groupsMap![v] ?? v.toString(), textAlign: TextAlign.right))));
+        if ((lower.contains('group') || lower.contains('group_id')) &&
+            groupsMap != null &&
+            v != null) {
+          cells.add(
+            DataCell(
+              Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  groupsMap![v] ?? v.toString(),
+                  textAlign: TextAlign.right,
+                ),
+              ),
+            ),
+          );
           continue;
         }
-        if ((lower.contains('type') || lower.contains('type_id')) && typesMap != null && v != null) {
-          cells.add(DataCell(Align(alignment: Alignment.centerRight, child: Text(typesMap![v] ?? v.toString(), textAlign: TextAlign.right))));
+        if ((lower.contains('type') || lower.contains('type_id')) &&
+            typesMap != null &&
+            v != null) {
+          cells.add(
+            DataCell(
+              Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  typesMap![v] ?? v.toString(),
+                  textAlign: TextAlign.right,
+                ),
+              ),
+            ),
+          );
           continue;
         }
-        if ((lower.contains('class') || lower.contains('class_id')) && classesMap != null && v != null) {
-          cells.add(DataCell(Align(alignment: Alignment.centerRight, child: Text(classesMap![v] ?? v.toString(), textAlign: TextAlign.right))));
+        if ((lower.contains('class') || lower.contains('class_id')) &&
+            classesMap != null &&
+            v != null) {
+          cells.add(
+            DataCell(
+              Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  classesMap![v] ?? v.toString(),
+                  textAlign: TextAlign.right,
+                ),
+              ),
+            ),
+          );
           continue;
         }
 
-        cells.add(DataCell(Align(alignment: Alignment.centerRight, child: Text(v == null ? '' : v.toString(), textAlign: TextAlign.right))));
+        cells.add(
+          DataCell(
+            Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                v == null ? '' : v.toString(),
+                textAlign: TextAlign.right,
+              ),
+            ),
+          ),
+        );
       }
 
       // actions cell
-      cells.add(DataCell(PopupMenuButton<String>(
-        onSelected: (v) {
-          if (v == 'view') {
-            if (onView != null) onView!(row);
-          } else if (v == 'edit') {
-            if (onEdit != null) {
-              // Use Future.microtask to avoid blocking the popup menu
-              Future.microtask(() => onEdit!(row));
-            }
-          } else if (v == 'delete') {
-            // Use Future.microtask to avoid blocking the popup menu
-            Future.microtask(() async {
-              final confirm = await showDialog<bool>(
-                context: _dummyContext,
-                builder: (c) => AlertDialog(
-                  title: const Text('حذف'),
-                  content: const Text('هل تريد حذف هذا السجل؟'),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.of(c).pop(false), child: const Text('لا')),
-                    TextButton(onPressed: () => Navigator.of(c).pop(true), child: const Text('نعم')),
-                  ],
-                ),
-              );
-              if (confirm == true && onDelete != null) {
-                await onDelete!(row['id']);
+      cells.add(
+        DataCell(
+          PopupMenuButton<String>(
+            onSelected: (v) {
+              if (v == 'view') {
+                if (onView != null) onView!(row);
+              } else if (v == 'edit') {
+                if (onEdit != null) {
+                  // Use Future.microtask to avoid blocking the popup menu
+                  Future.microtask(() => onEdit!(row));
+                }
+              } else if (v == 'delete') {
+                // Use Future.microtask to avoid blocking the popup menu
+                Future.microtask(() async {
+                  final confirm = await showDialog<bool>(
+                    context: _dummyContext,
+                    builder: (c) => AlertDialog(
+                      title: const Text('حذف'),
+                      content: const Text('هل تريد حذف هذا السجل؟'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(c).pop(false),
+                          child: const Text('لا'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.of(c).pop(true),
+                          child: const Text('نعم'),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirm == true && onDelete != null) {
+                    await onDelete!(row['id']);
+                  }
+                });
               }
-            });
-          }
-        },
-        itemBuilder: (_) => [
-          const PopupMenuItem(value: 'view', child: Text('عرض')),
-          const PopupMenuItem(value: 'edit', child: Text('تعديل')),
-          const PopupMenuItem(value: 'delete', child: Text('حذف')),
-        ],
-      )));
+            },
+            itemBuilder: (_) => [
+              const PopupMenuItem(value: 'view', child: Text('عرض')),
+              const PopupMenuItem(value: 'edit', child: Text('تعديل')),
+              const PopupMenuItem(value: 'delete', child: Text('حذف')),
+            ],
+          ),
+        ),
+      );
 
       return DataRow(cells: cells);
     }).toList();
@@ -1222,12 +1569,18 @@ class StudentsTable extends StatelessWidget {
   // Helper to prettify column keys
   static String _prettifyColumn(String key) {
     var s = key.replaceAll('_', ' ');
-    s = s.replaceAllMapped(RegExp(r'([a-z0-9])([A-Z])'), (m) => '${m[1]} ${m[2]}');
+    s = s.replaceAllMapped(
+      RegExp(r'([a-z0-9])([A-Z])'),
+      (m) => '${m[1]} ${m[2]}',
+    );
     final parts = s.split(RegExp(r"\s+"))..removeWhere((p) => p.trim().isEmpty);
-    final capitalized = parts.map((w) {
-      if (w.isEmpty) return w;
-      return w[0].toUpperCase() + (w.length > 1 ? w.substring(1).toLowerCase() : '');
-    }).join(' ');
+    final capitalized = parts
+        .map((w) {
+          if (w.isEmpty) return w;
+          return w[0].toUpperCase() +
+              (w.length > 1 ? w.substring(1).toLowerCase() : '');
+        })
+        .join(' ');
     return capitalized;
   }
 
