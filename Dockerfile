@@ -13,9 +13,12 @@ RUN git clone --depth 1 --branch stable \
       https://github.com/flutter/flutter.git /usr/local/flutter
 
 ENV PATH="/usr/local/flutter/bin:/usr/local/flutter/bin/cache/dart-sdk/bin:$PATH"
+ENV FLUTTER_SUPPRESS_ANALYTICS=true
 
-# Pre-download the web SDK artifacts (makes subsequent commands faster)
-RUN flutter precache --web
+# Warm up flutter tool and web SDK only (skip Android/Gradle completely)
+RUN flutter doctor -v --no-version-check || true \
+    && flutter config --no-analytics \
+    && flutter precache --web --no-android --no-ios --no-linux --no-macos --no-windows --no-fuchsia
 
 # ── Dependency layer (cached unless pubspec changes) ───────────────────────────
 WORKDIR /app
