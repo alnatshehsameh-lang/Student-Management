@@ -1,16 +1,27 @@
 # test_application
 
-A new Flutter project.
+Flutter-based student management application with Supabase backend and web deployment via Docker/Render.
 
-## Getting Started
+## Quick Start
 
-This project is a starting point for a Flutter application.
+- Install dependencies:
+	- `flutter pub get --enforce-lockfile`
+- Run app locally:
+	- `flutter run`
 
-A few resources to get you started if this is your first Flutter project:
+## Web Build
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+- Build release web bundle:
+	- `flutter build web --release --no-wasm-dry-run`
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Docker Build
+
+- Build image locally:
+	- `docker build --progress=plain -f Dockerfile -t test-application-web:local .`
+- Run image locally:
+	- `docker run --rm -p 8080:80 --name test-app-local test-application-web:local`
+
+## Deployment
+
+- Push to `main` to trigger Render deployment.
+- Full pre/post deploy checklist: `DEPLOYMENT_CHECKLIST.md`
