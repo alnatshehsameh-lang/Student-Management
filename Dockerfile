@@ -24,7 +24,7 @@ RUN flutter config --no-analytics \
 # ── Dependency layer (cached unless pubspec changes) ───────────────────────────
 WORKDIR /app
 COPY pubspec.yaml pubspec.lock* ./
-RUN flutter pub get --enforce-lockfile
+RUN flutter pub get
 
 # ── Source + build ─────────────────────────────────────────────────────────────
 COPY . .
