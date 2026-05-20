@@ -305,7 +305,7 @@ class _WeeklyWerdReportsScreenState extends State<WeeklyWerdReportsScreen> {
                         ),
                       );
                     },
-                  ),
+                  );
           },
         ),
       ),
