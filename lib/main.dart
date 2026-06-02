@@ -1715,6 +1715,11 @@ class _GroupsScreenState extends State<GroupsScreen> {
                                       child: SingleChildScrollView(
                                         scrollDirection: Axis.vertical,
                                         child: DataTable(
+                                          dataTextStyle: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(0xFF111827),
+                                          ),
                                           columns: [
                                             const DataColumn(
                                               label: Text('اسم الطالب'),

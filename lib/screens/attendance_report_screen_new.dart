@@ -734,6 +734,11 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
       padding: const EdgeInsets.all(16),
       child: ResponsiveTableContainer(
         child: DataTable(
+          dataTextStyle: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF111827),
+          ),
           headingRowColor: WidgetStateProperty.all(
             const Color(0xFF6366F1).withOpacity(0.1),
           ),

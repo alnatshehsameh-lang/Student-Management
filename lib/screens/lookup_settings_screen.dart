@@ -462,6 +462,11 @@ class _UsersLookupScreenState extends State<UsersLookupScreen> {
                               padding: const EdgeInsets.all(12),
                               minWidth: 980,
                               child: DataTable(
+                                dataTextStyle: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF111827),
+                                ),
                                 columns: const [
                                   DataColumn(label: Text('المعرف')),
                                   DataColumn(label: Text('اسم المستخدم')),
@@ -785,6 +790,11 @@ class _SimpleLookupScreenState extends State<_SimpleLookupScreen> {
                               padding: const EdgeInsets.all(12),
                               minWidth: 700,
                               child: DataTable(
+                                dataTextStyle: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF111827),
+                                ),
                                 columns: [
                                   const DataColumn(label: Text('المعرف')),
                                   DataColumn(label: Text(widget.valueLabel)),

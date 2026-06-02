@@ -1594,6 +1594,11 @@ class StudentsTable extends StatelessWidget {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: DataTable(
+        dataTextStyle: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF111827),
+        ),
         columns: _buildColumns(),
         rows: _buildRows(),
         columnSpacing: 24,

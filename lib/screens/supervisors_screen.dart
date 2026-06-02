@@ -555,6 +555,11 @@ class _SupervisorsScreenState extends State<SupervisorsScreen> {
                         : Card(
                             child: ResponsiveTableContainer(
                               child: DataTable(
+                                dataTextStyle: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF111827),
+                                ),
                                 columns: const [
                                   DataColumn(label: Text('الرقم الوظيفي')),
                                   DataColumn(label: Text('الاسم الكامل')),
