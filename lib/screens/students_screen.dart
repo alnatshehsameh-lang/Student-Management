@@ -1,7 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:universal_html/html.dart' as html;
 import '../models/user_session.dart';
 import '../widgets/responsive_table_container.dart';
 import '../widgets/searchable_lov_field.dart';
@@ -19,6 +22,7 @@ class StudentsScreen extends StatefulWidget {
 class _StudentsScreenState extends State<StudentsScreen> {
   late final dynamic _client = widget.client ?? Supabase.instance.client;
   bool _loading = true;
+  bool _exporting = false;
   List<Map<String, dynamic>> _rows = [];
   bool _lookupsLoading = true;
   dynamic _filterType;
@@ -287,6 +291,153 @@ class _StudentsScreenState extends State<StudentsScreen> {
       }
     } finally {
       setState(() => _loading = false);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchStudentsForExport() async {
+    final allRows = <Map<String, dynamic>>[];
+    dynamic lastId;
+    const pageSize = 1000;
+
+    while (true) {
+      var query = _client.from('Students').select();
+
+      if (_filterType != null) {
+        query = query.eq('"Type_id"', _filterType);
+      }
+      if (_filterClassNumber != null) {
+        query = query.eq('"Class_id"', _filterClassNumber);
+      }
+      if (_filterClass != null) {
+        query = query.eq('"Group_id"', _filterClass);
+      }
+      if (_searchName != null && _searchName!.isNotEmpty) {
+        query = query.ilike('"Student_Name"', '%${_searchName!}%');
+      }
+      if (lastId != null) {
+        query = query.gt('id', lastId);
+      }
+
+      final response = await query
+          .order('id', ascending: true)
+          .range(0, pageSize - 1);
+      final batch = response is List
+          ? List<Map<String, dynamic>>.from(response)
+          : <Map<String, dynamic>>[];
+
+      if (batch.isEmpty) {
+        break;
+      }
+
+      allRows.addAll(batch);
+
+      if (batch.length < pageSize) {
+        break;
+      }
+      lastId = batch.last['id'];
+    }
+
+    return allRows;
+  }
+
+  String _csvCell(String value) {
+    final escaped = value.replaceAll('"', '""');
+    return '"$escaped"';
+  }
+
+  String _excelSafeNumericLike(String value) {
+    if (value.isEmpty) return '';
+    return '="$value"';
+  }
+
+  Future<void> _exportFilteredStudentsCsv() async {
+    if (_exporting) {
+      return;
+    }
+
+    setState(() => _exporting = true);
+    try {
+      final exportRows = await _fetchStudentsForExport();
+      if (exportRows.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('لا توجد بيانات للتصدير بناءً على الفلاتر الحالية'),
+            ),
+          );
+        }
+        return;
+      }
+
+      final headers = <String>[
+        'ID',
+        'Student Name',
+        'Student Code',
+        'Mobile',
+        'Group',
+        'Class',
+        'Type',
+      ];
+
+      final buffer = StringBuffer();
+      buffer.write('\uFEFF');
+      buffer.writeln(headers.map(_csvCell).join(','));
+
+      for (final row in exportRows) {
+        final studentCode = (row['Student_Code'] ?? '').toString();
+        final mobile = (row['Mobile_No'] ?? '').toString();
+        final groupId = row['Group_id'];
+        final classId = row['Class_id'];
+        final typeId = row['Type_id'];
+
+        final values = <String>[
+          (row['id'] ?? '').toString(),
+          (row['Student_Name'] ?? '').toString(),
+          _excelSafeNumericLike(studentCode),
+          _excelSafeNumericLike(mobile),
+          _groupsMap[groupId] ?? (groupId?.toString() ?? ''),
+          _classesMap[classId] ?? (classId?.toString() ?? ''),
+          _typesMap[typeId] ?? (typeId?.toString() ?? ''),
+        ];
+
+        buffer.writeln(values.map(_csvCell).join(','));
+      }
+
+      final now = DateTime.now();
+      final fileName =
+          'students_filtered_${now.year}_${now.month.toString().padLeft(2, '0')}_${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}.csv';
+
+      if (kIsWeb) {
+        final bytes = utf8.encode(buffer.toString());
+        final blob = html.Blob(<dynamic>[bytes], 'text/csv;charset=utf-8;');
+        final url = html.Url.createObjectUrlFromBlob(blob);
+        final anchor = html.AnchorElement(href: url)
+          ..setAttribute('download', fileName)
+          ..click();
+        html.Url.revokeObjectUrl(url);
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              kIsWeb
+                  ? 'تم تصدير ${exportRows.length} سجل بنجاح'
+                  : 'تم إعداد الملف بنجاح',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('تعذر تصدير البيانات: $e')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _exporting = false);
+      }
     }
   }
 
@@ -1047,6 +1198,19 @@ class _StudentsScreenState extends State<StudentsScreen> {
                       _fetchStudents();
                     },
                     child: const Text('بحث'),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: (_loading || _exporting)
+                        ? null
+                        : _exportFilteredStudentsCsv,
+                    icon: _exporting
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.download_rounded),
+                    label: const Text('تصدير CSV'),
                   ),
                   TextButton(
                     onPressed: () {
