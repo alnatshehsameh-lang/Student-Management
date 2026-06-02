@@ -54,7 +54,7 @@ class MyApp extends StatelessWidget {
         colorScheme: colorScheme,
         primaryColor: colorScheme.primary,
         scaffoldBackgroundColor: const Color(0xFFF8FAFC),
-        // Typography: use Tajawal from Google Fonts for a modern Arabic-friendly UI
+        // Typography tuned for stronger readability in Arabic UI
         textTheme: GoogleFonts.tajawalTextTheme().copyWith(
           displayLarge: GoogleFonts.tajawal(
             fontSize: 32,
@@ -73,17 +73,17 @@ class MyApp extends StatelessWidget {
           ),
           bodyLarge: GoogleFonts.tajawal(
             fontSize: 16,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w600,
             color: const Color(0xFF374151),
           ),
           bodyMedium: GoogleFonts.tajawal(
             fontSize: 14,
-            fontWeight: FontWeight.w400,
-            color: const Color(0xFF6B7280),
+            fontWeight: FontWeight.w500,
+            color: const Color(0xFF4B5563),
           ),
           labelLarge: GoogleFonts.tajawal(
             fontSize: 14,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
             color: colorScheme.primary,
           ),
         ),
@@ -95,10 +95,10 @@ class MyApp extends StatelessWidget {
           centerTitle: true,
           titleTextStyle: GoogleFonts.tajawal(
             fontSize: 20,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
             color: const Color(0xFF1F2937),
           ),
-          iconTheme: const IconThemeData(color: Color(0xFF6B7280)),
+          iconTheme: const IconThemeData(color: Color(0xFF4B5563)),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
@@ -136,8 +136,8 @@ class MyApp extends StatelessWidget {
             borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
           ),
           labelStyle: GoogleFonts.tajawal(
-            color: const Color(0xFF6B7280),
-            fontWeight: FontWeight.w500,
+            color: const Color(0xFF4B5563),
+            fontWeight: FontWeight.w600,
           ),
         ),
         cardColor: Colors.white,
@@ -153,9 +153,9 @@ class MyApp extends StatelessWidget {
         dataTableTheme: DataTableThemeData(
           headingRowColor: WidgetStateProperty.all(const Color(0xFFF9FAFB)),
           headingTextStyle: GoogleFonts.tajawal(
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
             fontSize: 14,
-            color: const Color(0xFF6B7280),
+            color: const Color(0xFF374151),
           ),
           dataTextStyle: GoogleFonts.tajawal(
             fontSize: 14,
@@ -200,7 +200,8 @@ class MyApp extends StatelessWidget {
               ),
               bodyMedium: GoogleFonts.tajawal(
                 fontSize: 14,
-                color: Colors.white70,
+                fontWeight: FontWeight.w500,
+                color: Colors.white,
               ),
               labelLarge: GoogleFonts.tajawal(
                 fontSize: 14,
@@ -701,7 +702,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   'نظام إدارة الحلقات',
                                   style: TextStyle(
                                     fontSize: 14,
-                                    color: Color(0xFF9CA3AF),
+                                    color: Color(0xFF6B7280),
                                   ),
                                 ),
                               ],
@@ -731,8 +732,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                     'إدارة الحلقات',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF9CA3AF),
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF6B7280),
                                       letterSpacing: 0.5,
                                     ),
                                   ),
@@ -789,8 +790,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                     'التقارير',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF9CA3AF),
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF6B7280),
                                       letterSpacing: 0.5,
                                     ),
                                   ),
@@ -820,8 +821,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                     'الإعدادات',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF9CA3AF),
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF6B7280),
                                       letterSpacing: 0.5,
                                     ),
                                   ),
@@ -1042,7 +1043,7 @@ class _NavItem extends StatelessWidget {
               Icon(
                 icon,
                 size: 20,
-                color: isActive ? Colors.white : const Color(0xFF6B7280),
+                color: isActive ? Colors.white : const Color(0xFF4B5563),
               ),
               const SizedBox(width: 12),
               Text(
@@ -1129,7 +1130,11 @@ class _StatCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             subtitle,
-            style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF6B7280),
+            ),
           ),
         ],
       ),

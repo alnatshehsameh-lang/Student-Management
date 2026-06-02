@@ -8,7 +8,8 @@ class ManageWeeklyLinksScreen extends StatefulWidget {
   const ManageWeeklyLinksScreen({super.key, required this.userSession});
 
   @override
-  State<ManageWeeklyLinksScreen> createState() => _ManageWeeklyLinksScreenState();
+  State<ManageWeeklyLinksScreen> createState() =>
+      _ManageWeeklyLinksScreenState();
 }
 
 class _ManageWeeklyLinksScreenState extends State<ManageWeeklyLinksScreen> {
@@ -66,7 +67,7 @@ class _ManageWeeklyLinksScreenState extends State<ManageWeeklyLinksScreen> {
 
       // Generate one shared token for this week, class, and group
       final sharedToken = _generateToken(DateTime.now().millisecondsSinceEpoch);
-      
+
       // Store or retrieve the shared link info
       final existingLink = await _client
           .from('Weekly_Werd_Shared_Links')
@@ -96,14 +97,16 @@ class _ManageWeeklyLinksScreenState extends State<ManageWeeklyLinksScreen> {
       final sharedLink = 'https://yourapp.com/werd-checklist/$finalToken';
 
       setState(() {
-        _generatedLinks = [{
-          'type': 'shared',
-          'class_id': _userClassId,
-          'group_id': _userGroupId,
-          'week': '$weekStartStr - $weekEndStr',
-          'token': finalToken,
-          'link': sharedLink,
-        }];
+        _generatedLinks = [
+          {
+            'type': 'shared',
+            'class_id': _userClassId,
+            'group_id': _userGroupId,
+            'week': '$weekStartStr - $weekEndStr',
+            'token': finalToken,
+            'link': sharedLink,
+          },
+        ];
         _generating = false;
       });
 
@@ -131,34 +134,35 @@ class _ManageWeeklyLinksScreenState extends State<ManageWeeklyLinksScreen> {
   }
 
   String _generateToken(int studentId) {
-    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    const chars =
+        'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     final timestamp = DateTime.now().microsecondsSinceEpoch;
     final random = timestamp + studentId * 1000;
     final buffer = StringBuffer();
-    
+
     for (int i = 0; i < 40; i++) {
       final index = ((random + i * 7919 + studentId * 13) % chars.length).abs();
       buffer.write(chars[index]);
     }
-    
+
     return buffer.toString();
   }
 
   void _copyLink(String link) {
     Clipboard.setData(ClipboardData(text: link));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('تم نسخ الرابط')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('تم نسخ الرابط')));
   }
 
   void _copyAllLinks() {
     if (_generatedLinks.isEmpty) return;
-    
+
     final link = _generatedLinks.first['link'];
     Clipboard.setData(ClipboardData(text: link));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('تم نسخ الرابط')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('تم نسخ الرابط')));
   }
 
   Future<void> _selectWeek() async {
@@ -184,242 +188,263 @@ class _ManageWeeklyLinksScreenState extends State<ManageWeeklyLinksScreen> {
     final weekEnd = _selectedWeekStart.add(const Duration(days: 6));
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('إدارة روابط الورد الأسبوعي'),
-      ),
+      appBar: AppBar(title: const Text('إدارة روابط الورد الأسبوعي')),
       body: Directionality(
         textDirection: TextDirection.rtl,
         child: LayoutBuilder(
           builder: (context, constraints) {
             final isCompact = constraints.maxWidth < 700;
             return Column(
-          children: [
-            // Week Selector
-            Container(
-              padding: EdgeInsets.all(isCompact ? 12 : 16),
-              color: Colors.grey[100],
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'اختر الأسبوع',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  InkWell(
-                    onTap: _selectWeek,
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey[300]!),
+              children: [
+                // Week Selector
+                Container(
+                  padding: EdgeInsets.all(isCompact ? 12 : 16),
+                  color: Colors.grey[100],
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'اختر الأسبوع',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.calendar_today, color: Colors.blue),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'الأسبوع المحدد',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey,
-                                  ),
+                      const SizedBox(height: 12),
+                      InkWell(
+                        onTap: _selectWeek,
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey[300]!),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.calendar_today,
+                                color: Colors.blue,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'الأسبوع المحدد',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Color(0xFF4B5563),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    Text(
+                                      '${_selectedWeekStart.toString().split(' ')[0]} - ${weekEnd.toString().split(' ')[0]}',
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                Text(
-                                  '${_selectedWeekStart.toString().split(' ')[0]} - ${weekEnd.toString().split(' ')[0]}',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
+                              ),
+                              const Icon(Icons.arrow_drop_down),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: _generating ? null : _generateLinks,
+                          icon: _generating
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
                                   ),
-                                ),
-                              ],
+                                )
+                              : const Icon(Icons.link),
+                          label: Text(
+                            _generating ? 'جاري الإنشاء...' : 'إنشاء الروابط',
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          const Icon(Icons.arrow_drop_down),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _generating ? null : _generateLinks,
-                      icon: _generating
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.link),
-                      label: Text(_generating ? 'جاري الإنشاء...' : 'إنشاء الروابط'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
                         ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Generated Links List
-            if (_generatedLinks.isNotEmpty) ...[
-              Padding(
-                padding: EdgeInsets.all(isCompact ? 12 : 16),
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  alignment: WrapAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'تم إنشاء ${_generatedLinks.length} رابط',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    TextButton.icon(
-                      onPressed: _copyAllLinks,
-                      icon: const Icon(Icons.copy_all),
-                      label: const Text('نسخ الكل'),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: ListView.builder(
-                  padding: EdgeInsets.symmetric(horizontal: isCompact ? 12 : 16),
-                  itemCount: _generatedLinks.length,
-                  itemBuilder: (context, index) {
-                    final link = _generatedLinks[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      elevation: 4,
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.green[100],
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Icon(
-                                    Icons.link,
-                                    color: Colors.green[700],
-                                    size: 32,
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        'رابط مشترك للمجموعة',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 18,
-                                        ),
-                                      ),
-                                      Text(
-                                        'الأسبوع: ${link['week']}',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const Divider(height: 24),
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.blue[50],
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.blue[200]!),
-                              ),
-                              child: SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: Text(
-                                  link['link'],
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.blue,
-                                    fontFamily: 'monospace',
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton.icon(
-                                onPressed: () => _copyLink(link['link']),
-                                icon: const Icon(Icons.copy),
-                                label: const Text('نسخ الرابط لمشاركته'),
-                                style: ElevatedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'شارك هذا الرابط مع جميع الطلاب في المجموعة عبر واتساب',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                                fontStyle: FontStyle.italic,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ] else
-              const Expanded(
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.link_off, size: 64, color: Colors.grey),
-                      SizedBox(height: 16),
-                      Text(
-                        'لم يتم إنشاء روابط بعد',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        'اضغط على "إنشاء الروابط" للبدء',
-                        style: TextStyle(color: Colors.grey, fontSize: 12),
                       ),
                     ],
                   ),
                 ),
-              ),
-          ],
+
+                // Generated Links List
+                if (_generatedLinks.isNotEmpty) ...[
+                  Padding(
+                    padding: EdgeInsets.all(isCompact ? 12 : 16),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      alignment: WrapAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'تم إنشاء ${_generatedLinks.length} رابط',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed: _copyAllLinks,
+                          icon: const Icon(Icons.copy_all),
+                          label: const Text('نسخ الكل'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView.builder(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isCompact ? 12 : 16,
+                      ),
+                      itemCount: _generatedLinks.length,
+                      itemBuilder: (context, index) {
+                        final link = _generatedLinks[index];
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          elevation: 4,
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.green[100],
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Icon(
+                                        Icons.link,
+                                        color: Colors.green[700],
+                                        size: 32,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            'رابط مشترك للمجموعة',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 18,
+                                            ),
+                                          ),
+                                          Text(
+                                            'الأسبوع: ${link['week']}',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.grey[700],
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const Divider(height: 24),
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue[50],
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: Colors.blue[200]!,
+                                    ),
+                                  ),
+                                  child: SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal,
+                                    child: Text(
+                                      link['link'],
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.blue,
+                                        fontFamily: 'monospace',
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton.icon(
+                                    onPressed: () => _copyLink(link['link']),
+                                    icon: const Icon(Icons.copy),
+                                    label: const Text('نسخ الرابط لمشاركته'),
+                                    style: ElevatedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 12,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'شارك هذا الرابط مع جميع الطلاب في المجموعة عبر واتساب',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[700],
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ] else
+                  const Expanded(
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.link_off, size: 64, color: Colors.grey),
+                          SizedBox(height: 16),
+                          Text(
+                            'لم يتم إنشاء روابط بعد',
+                            style: TextStyle(
+                              color: Color(0xFF4B5563),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'اضغط على "إنشاء الروابط" للبدء',
+                            style: TextStyle(
+                              color: Color(0xFF4B5563),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
             );
           },
         ),

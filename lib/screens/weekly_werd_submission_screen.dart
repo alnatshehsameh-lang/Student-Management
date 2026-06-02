@@ -4,17 +4,16 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class WeeklyWerdSubmissionScreen extends StatefulWidget {
   final String? submissionToken;
-  
-  const WeeklyWerdSubmissionScreen({
-    super.key,
-    this.submissionToken,
-  });
+
+  const WeeklyWerdSubmissionScreen({super.key, this.submissionToken});
 
   @override
-  State<WeeklyWerdSubmissionScreen> createState() => _WeeklyWerdSubmissionScreenState();
+  State<WeeklyWerdSubmissionScreen> createState() =>
+      _WeeklyWerdSubmissionScreenState();
 }
 
-class _WeeklyWerdSubmissionScreenState extends State<WeeklyWerdSubmissionScreen> with SingleTickerProviderStateMixin {
+class _WeeklyWerdSubmissionScreenState extends State<WeeklyWerdSubmissionScreen>
+    with SingleTickerProviderStateMixin {
   final _client = Supabase.instance.client;
   bool _loading = true;
   bool _submitting = false;
@@ -24,7 +23,7 @@ class _WeeklyWerdSubmissionScreenState extends State<WeeklyWerdSubmissionScreen>
   List<Map<String, dynamic>> _questions = [];
   final Map<String, String> _responses = {}; // question_id -> status
   final Map<String, String> _comments = {}; // question_id -> comment
-  
+
   late AnimationController _successAnimationController;
   late Animation<double> _scaleAnimation;
 
@@ -81,9 +80,9 @@ class _WeeklyWerdSubmissionScreenState extends State<WeeklyWerdSubmissionScreen>
 
       if (submissionRes == null) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('رابط غير صحيح')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('رابط غير صحيح')));
         }
         setState(() => _loading = false);
         return;
@@ -99,9 +98,9 @@ class _WeeklyWerdSubmissionScreenState extends State<WeeklyWerdSubmissionScreen>
 
       if (templateRes == null) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('لا يوجد نموذج فعّال')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('لا يوجد نموذج فعّال')));
         }
         setState(() => _loading = false);
         return;
@@ -114,7 +113,7 @@ class _WeeklyWerdSubmissionScreenState extends State<WeeklyWerdSubmissionScreen>
         _submission = submissionRes;
         _student = submissionRes['Students'];
         _questions = List<Map<String, dynamic>>.from(checklistItems);
-        
+
         // Load existing responses if any
         for (var response in existingResponses) {
           final itemId = response['item_id'];
@@ -123,7 +122,7 @@ class _WeeklyWerdSubmissionScreenState extends State<WeeklyWerdSubmissionScreen>
             _comments[itemId] = response['comment'];
           }
         }
-        
+
         // Check if already submitted
         _submitted = existingResponses.isNotEmpty;
         _loading = false;
@@ -131,9 +130,9 @@ class _WeeklyWerdSubmissionScreenState extends State<WeeklyWerdSubmissionScreen>
     } catch (e) {
       debugPrint('Error loading submission: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ في التحميل: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('خطأ في التحميل: $e')));
       }
       setState(() => _loading = false);
     }
@@ -152,22 +151,24 @@ class _WeeklyWerdSubmissionScreenState extends State<WeeklyWerdSubmissionScreen>
 
   Future<void> _showStudentSelector(Map<String, dynamic> sharedLink) async {
     // Load students for this class/group
-    var builder = _client.from('Students').select('id, Student_Name, Student_Code');
-    
+    var builder = _client
+        .from('Students')
+        .select('id, Student_Name, Student_Code');
+
     if (sharedLink['Class_id'] != null) {
       builder = builder.eq('Class_id', sharedLink['Class_id']);
     }
     if (sharedLink['Group_id'] != null) {
       builder = builder.eq('Group_id', sharedLink['Group_id']);
     }
-    
+
     final studentsRes = await builder.order('Student_Name').limit(500);
-    
+
     if (studentsRes is! List || studentsRes.isEmpty) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('لا يوجد طلاب')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('لا يوجد طلاب')));
         setState(() => _loading = false);
       }
       return;
@@ -190,10 +191,10 @@ class _WeeklyWerdSubmissionScreenState extends State<WeeklyWerdSubmissionScreen>
             itemBuilder: (context, index) {
               final student = students[index];
               return ListTile(
-                leading: CircleAvatar(
-                  child: Text('${index + 1}'),
+                leading: CircleAvatar(child: Text('${index + 1}')),
+                title: Text(
+                  '${student['Student_Name']} (${student['Student_Code'] ?? ''})',
                 ),
-                title: Text('${student['Student_Name']} (${student['Student_Code'] ?? ''})'),
                 onTap: () => Navigator.pop(context, student),
               );
             },
@@ -217,7 +218,7 @@ class _WeeklyWerdSubmissionScreenState extends State<WeeklyWerdSubmissionScreen>
   ) async {
     try {
       final weekStartStr = sharedLink['week_start_date'];
-      
+
       // Check if submission already exists
       var existingSubmission = await _client
           .from('Weekly_Werd')
@@ -257,22 +258,23 @@ class _WeeklyWerdSubmissionScreenState extends State<WeeklyWerdSubmissionScreen>
 
       if (templateRes == null) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('لا يوجد نموذج فعّال')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('لا يوجد نموذج فعّال')));
         }
         setState(() => _loading = false);
         return;
       }
 
       final checklistItems = templateRes['checklist_items'] as List;
-      final existingResponses = existingSubmission['checklist_responses'] as List;
+      final existingResponses =
+          existingSubmission['checklist_responses'] as List;
 
       setState(() {
         _submission = existingSubmission;
         _student = student;
         _questions = List<Map<String, dynamic>>.from(checklistItems);
-        
+
         // Load existing responses
         for (var response in existingResponses) {
           final itemId = response['item_id'];
@@ -281,16 +283,16 @@ class _WeeklyWerdSubmissionScreenState extends State<WeeklyWerdSubmissionScreen>
             _comments[itemId] = response['comment'];
           }
         }
-        
+
         _submitted = existingResponses.isNotEmpty;
         _loading = false;
       });
     } catch (e) {
       debugPrint('Error loading student submission: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('خطأ: $e')));
         setState(() => _loading = false);
       }
     }
@@ -302,7 +304,9 @@ class _WeeklyWerdSubmissionScreenState extends State<WeeklyWerdSubmissionScreen>
       if (question['is_mandatory'] == true) {
         if (!_responses.containsKey(question['id'])) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('يرجى الإجابة على جميع الأسئلة المطلوبة')),
+            const SnackBar(
+              content: Text('يرجى الإجابة على جميع الأسئلة المطلوبة'),
+            ),
           );
           return;
         }
@@ -351,9 +355,9 @@ class _WeeklyWerdSubmissionScreenState extends State<WeeklyWerdSubmissionScreen>
     } catch (e) {
       debugPrint('Error submitting: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ في الحفظ: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('خطأ في الحفظ: $e')));
       }
       setState(() => _submitting = false);
     }
@@ -371,10 +375,10 @@ class _WeeklyWerdSubmissionScreenState extends State<WeeklyWerdSubmissionScreen>
         child: _loading
             ? const Center(child: CircularProgressIndicator())
             : _submission == null
-                ? _buildErrorView()
-                : _submitted
-                    ? _buildSubmittedView()
-                    : _buildFormView(),
+            ? _buildErrorView()
+            : _submitted
+            ? _buildSubmittedView()
+            : _buildFormView(),
       ),
     );
   }
@@ -393,7 +397,10 @@ class _WeeklyWerdSubmissionScreenState extends State<WeeklyWerdSubmissionScreen>
           const SizedBox(height: 8),
           const Text(
             'يرجى التحقق من الرابط والمحاولة مرة أخرى',
-            style: TextStyle(color: Colors.grey),
+            style: TextStyle(
+              color: Color(0xFF4B5563),
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
@@ -438,7 +445,10 @@ class _WeeklyWerdSubmissionScreenState extends State<WeeklyWerdSubmissionScreen>
           const SizedBox(height: 8),
           Text(
             'تم حفظ إجاباتك في ${DateTime.now().toString().split(' ')[0]}',
-            style: TextStyle(color: Colors.grey[600]),
+            style: TextStyle(
+              color: Colors.grey[700],
+              fontWeight: FontWeight.w500,
+            ),
           ),
           const SizedBox(height: 32),
           ElevatedButton.icon(
@@ -487,7 +497,10 @@ class _WeeklyWerdSubmissionScreenState extends State<WeeklyWerdSubmissionScreen>
                 const SizedBox(height: 8),
                 Text(
                   'الأسبوع: ${_submission?['week_start_date']} - ${_submission?['week_end_date']}',
-                  style: const TextStyle(color: Colors.white70),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
@@ -502,7 +515,9 @@ class _WeeklyWerdSubmissionScreenState extends State<WeeklyWerdSubmissionScreen>
                         value: _progressPercentage / 100,
                         strokeWidth: 8,
                         backgroundColor: Colors.white30,
-                        valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          Colors.white,
+                        ),
                       ),
                     ),
                     Column(
@@ -518,7 +533,8 @@ class _WeeklyWerdSubmissionScreenState extends State<WeeklyWerdSubmissionScreen>
                         Text(
                           '$_completedCount من $_totalCount',
                           style: const TextStyle(
-                            color: Colors.white70,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
                             fontSize: 12,
                           ),
                         ),
@@ -733,7 +749,9 @@ class _WeeklyWerdSubmissionScreenState extends State<WeeklyWerdSubmissionScreen>
                         height: 24,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
                         ),
                       )
                     : const Text(
@@ -780,18 +798,14 @@ class _WeeklyWerdSubmissionScreenState extends State<WeeklyWerdSubmissionScreen>
         ),
         child: Column(
           children: [
-            Icon(
-              icon,
-              color: isSelected ? color : Colors.grey[400],
-              size: 28,
-            ),
+            Icon(icon, color: isSelected ? color : Colors.grey[400], size: 28),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? color : Colors.grey[600],
+                color: isSelected ? color : Colors.grey[700],
               ),
             ),
           ],

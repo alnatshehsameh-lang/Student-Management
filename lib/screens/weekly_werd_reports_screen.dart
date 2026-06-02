@@ -7,7 +7,8 @@ class WeeklyWerdReportsScreen extends StatefulWidget {
   const WeeklyWerdReportsScreen({super.key, required this.userSession});
 
   @override
-  State<WeeklyWerdReportsScreen> createState() => _WeeklyWerdReportsScreenState();
+  State<WeeklyWerdReportsScreen> createState() =>
+      _WeeklyWerdReportsScreenState();
 }
 
 class _WeeklyWerdReportsScreenState extends State<WeeklyWerdReportsScreen> {
@@ -47,7 +48,7 @@ class _WeeklyWerdReportsScreenState extends State<WeeklyWerdReportsScreen> {
     } catch (e) {
       debugPrint('Failed to fetch restrictions: $e');
     }
-    
+
     _fetchSubmissions();
   }
 
@@ -56,7 +57,9 @@ class _WeeklyWerdReportsScreenState extends State<WeeklyWerdReportsScreen> {
     try {
       var builder = _client
           .from('Weekly_Werd')
-          .select('*, Students(id, Student_Name, Student_Code, Class_id, Group_id)');
+          .select(
+            '*, Students(id, Student_Name, Student_Code, Class_id, Group_id)',
+          );
 
       // Apply restrictions
       if (!widget.userSession.hasFullAccess) {
@@ -70,10 +73,15 @@ class _WeeklyWerdReportsScreenState extends State<WeeklyWerdReportsScreen> {
 
       // Filter by selected week if any
       if (_selectedWeekStart != null) {
-        builder = builder.eq('week_start_date', _selectedWeekStart!.toIso8601String().split('T')[0]);
+        builder = builder.eq(
+          'week_start_date',
+          _selectedWeekStart!.toIso8601String().split('T')[0],
+        );
       }
 
-      final res = await builder.order('week_start_date', ascending: false).limit(100);
+      final res = await builder
+          .order('week_start_date', ascending: false)
+          .limit(100);
 
       if (res is List) {
         setState(() {
@@ -83,9 +91,9 @@ class _WeeklyWerdReportsScreenState extends State<WeeklyWerdReportsScreen> {
     } catch (e) {
       debugPrint('Error fetching submissions: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ في تحميل البيانات: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('خطأ في تحميل البيانات: $e')));
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -99,85 +107,88 @@ class _WeeklyWerdReportsScreenState extends State<WeeklyWerdReportsScreen> {
       builder: (context) {
         final width = MediaQuery.of(context).size.width;
         return AlertDialog(
-        title: Text('تفاصيل الورد الأسبوعي'),
-        content: SizedBox(
-          width: width < 640 ? width - 48 : 560,
-          child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'الطالب: ${submission['Students']?['Student_Name'] ?? 'غير معروف'} (${submission['Students']?['Student_Code'] ?? ''})',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text('الأسبوع: ${submission['week_start_date']} - ${submission['week_end_date']}'),
-              const Divider(height: 24),
-              ...responses.map((r) {
-                final status = r['status'];
-                Color statusColor = Colors.grey;
-                String statusText = 'لم يتم';
-                IconData statusIcon = Icons.close;
+          title: Text('تفاصيل الورد الأسبوعي'),
+          content: SizedBox(
+            width: width < 640 ? width - 48 : 560,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'الطالب: ${submission['Students']?['Student_Name'] ?? 'غير معروف'} (${submission['Students']?['Student_Code'] ?? ''})',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'الأسبوع: ${submission['week_start_date']} - ${submission['week_end_date']}',
+                  ),
+                  const Divider(height: 24),
+                  ...responses.map((r) {
+                    final status = r['status'];
+                    Color statusColor = Colors.grey[700]!;
+                    String statusText = 'لم يتم';
+                    IconData statusIcon = Icons.close;
 
-                if (status == 'completed') {
-                  statusColor = Colors.green;
-                  statusText = 'مكتمل';
-                  statusIcon = Icons.check_circle;
-                } else if (status == 'partially') {
-                  statusColor = Colors.orange;
-                  statusText = 'جزئياً';
-                  statusIcon = Icons.pending;
-                }
+                    if (status == 'completed') {
+                      statusColor = Colors.green;
+                      statusText = 'مكتمل';
+                      statusIcon = Icons.check_circle;
+                    } else if (status == 'partially') {
+                      statusColor = Colors.orange;
+                      statusText = 'جزئياً';
+                      statusIcon = Icons.pending;
+                    }
 
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        r['question'],
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 4),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 6,
-                        crossAxisAlignment: WrapCrossAlignment.center,
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(statusIcon, color: statusColor, size: 20),
                           Text(
-                            statusText,
-                            style: TextStyle(color: statusColor),
+                            r['question'],
+                            style: const TextStyle(fontWeight: FontWeight.w600),
                           ),
+                          const SizedBox(height: 4),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 6,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              Icon(statusIcon, color: statusColor, size: 20),
+                              Text(
+                                statusText,
+                                style: TextStyle(color: statusColor),
+                              ),
+                            ],
+                          ),
+                          if (r['comment'] != null &&
+                              (r['comment'] as String).isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              'ملاحظة: ${r['comment']}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[700],
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
-                      if (r['comment'] != null && (r['comment'] as String).isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          'ملاحظة: ${r['comment']}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                );
-              }),
-            ],
+                    );
+                  }),
+                ],
+              ),
+            ),
           ),
-        ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('إغلاق'),
-          ),
-        ],
-      );
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('إغلاق'),
+            ),
+          ],
+        );
       },
     );
   }
@@ -200,8 +211,8 @@ class _WeeklyWerdReportsScreenState extends State<WeeklyWerdReportsScreen> {
           builder: (context, constraints) {
             final isCompact = constraints.maxWidth < 700;
             return _loading
-            ? const Center(child: CircularProgressIndicator())
-            : _submissions.isEmpty
+                ? const Center(child: CircularProgressIndicator())
+                : _submissions.isEmpty
                 ? const Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -210,20 +221,27 @@ class _WeeklyWerdReportsScreenState extends State<WeeklyWerdReportsScreen> {
                         SizedBox(height: 16),
                         Text(
                           'لا توجد تقارير حتى الآن',
-                          style: TextStyle(fontSize: 16, color: Colors.grey),
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Color(0xFF4B5563),
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ],
                     ),
                   )
                 : ListView.builder(
-                  padding: EdgeInsets.all(isCompact ? 12 : 16),
+                    padding: EdgeInsets.all(isCompact ? 12 : 16),
                     itemCount: _submissions.length,
                     itemBuilder: (context, index) {
                       final submission = _submissions[index];
-                      final responses = submission['checklist_responses'] as List;
-                      
+                      final responses =
+                          submission['checklist_responses'] as List;
+
                       // Calculate completion percentage
-                      int completed = responses.where((r) => r['status'] == 'completed').length;
+                      int completed = responses
+                          .where((r) => r['status'] == 'completed')
+                          .length;
                       int total = responses.length;
                       double percentage = (completed / total) * 100;
 
@@ -243,8 +261,8 @@ class _WeeklyWerdReportsScreenState extends State<WeeklyWerdReportsScreen> {
                                       backgroundColor: percentage >= 80
                                           ? Colors.green
                                           : percentage >= 50
-                                              ? Colors.orange
-                                              : Colors.red,
+                                          ? Colors.orange
+                                          : Colors.red,
                                       child: Text(
                                         '${percentage.toInt()}%',
                                         style: const TextStyle(
@@ -257,7 +275,8 @@ class _WeeklyWerdReportsScreenState extends State<WeeklyWerdReportsScreen> {
                                     const SizedBox(width: 12),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             '${submission['Students']?['Student_Name'] ?? 'غير معروف'} (${submission['Students']?['Student_Code'] ?? ''})',
@@ -270,13 +289,15 @@ class _WeeklyWerdReportsScreenState extends State<WeeklyWerdReportsScreen> {
                                             'الأسبوع: ${submission['week_start_date']}',
                                             style: TextStyle(
                                               fontSize: 12,
-                                              color: Colors.grey[600],
+                                              color: Colors.grey[700],
+                                              fontWeight: FontWeight.w500,
                                             ),
                                           ),
                                         ],
                                       ),
                                     ),
-                                    if (!isCompact) const Icon(Icons.chevron_left),
+                                    if (!isCompact)
+                                      const Icon(Icons.chevron_left),
                                   ],
                                 ),
                                 const SizedBox(height: 12),
@@ -287,8 +308,8 @@ class _WeeklyWerdReportsScreenState extends State<WeeklyWerdReportsScreen> {
                                     percentage >= 80
                                         ? Colors.green
                                         : percentage >= 50
-                                            ? Colors.orange
-                                            : Colors.red,
+                                        ? Colors.orange
+                                        : Colors.red,
                                   ),
                                 ),
                                 const SizedBox(height: 8),
@@ -296,7 +317,8 @@ class _WeeklyWerdReportsScreenState extends State<WeeklyWerdReportsScreen> {
                                   '$completed من $total مكتمل',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: Colors.grey[600],
+                                    color: Colors.grey[700],
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
                               ],

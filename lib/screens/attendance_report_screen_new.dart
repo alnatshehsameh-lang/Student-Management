@@ -654,7 +654,10 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
                           const SizedBox(height: 16),
                           Text(
                             'اختر المرشحات واضغط "عرض" لإنشاء التقرير',
-                            style: TextStyle(color: Colors.grey[600]),
+                            style: TextStyle(
+                              color: Colors.grey[700],
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ],
                       ),
@@ -717,7 +720,10 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
         ),
         child: Text(
           date == null ? 'اختر التاريخ' : date.toIso8601String().split('T')[0],
-          style: TextStyle(color: date == null ? Colors.grey : Colors.black),
+          style: TextStyle(
+            color: date == null ? const Color(0xFF4B5563) : Colors.black,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     );
@@ -1039,7 +1045,10 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
                   ? Center(
                       child: Text(
                         'لا توجد بيانات للحساب',
-                        style: TextStyle(color: Colors.grey[600]),
+                        style: TextStyle(
+                          color: Colors.grey[700],
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     )
                   : PieChart(
