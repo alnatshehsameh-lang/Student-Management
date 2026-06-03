@@ -350,6 +350,45 @@ class _StudentsScreenState extends State<StudentsScreen> {
     return '="$value"';
   }
 
+  bool _isValidStudentCode(String code) {
+    return RegExp(r'^[A-Za-z]+\d+$').hasMatch(code);
+  }
+
+  String? _buildNextStudentCode(List<dynamic> existingCodes) {
+    final pattern = RegExp(r'^([A-Za-z]+)(\d+)$');
+
+    String? bestPrefix;
+    int bestSequence = -1;
+    int bestWidth = 0;
+
+    for (final raw in existingCodes) {
+      final code = (raw ?? '').toString().trim();
+      if (code.isEmpty) continue;
+
+      final match = pattern.firstMatch(code);
+      if (match == null) continue;
+
+      final prefix = match.group(1)!;
+      final digits = match.group(2)!;
+      final sequence = int.tryParse(digits);
+      if (sequence == null) continue;
+
+      if (sequence > bestSequence) {
+        bestSequence = sequence;
+        bestPrefix = prefix;
+        bestWidth = digits.length;
+      }
+    }
+
+    if (bestPrefix == null) {
+      return null;
+    }
+
+    final nextSequence = bestSequence + 1;
+    final nextDigits = nextSequence.toString().padLeft(bestWidth, '0');
+    return '$bestPrefix$nextDigits';
+  }
+
   Future<void> _exportFilteredStudentsCsv() async {
     if (_exporting) {
       return;
@@ -725,10 +764,25 @@ class _StudentsScreenState extends State<StudentsScreen> {
                     onPressed: () async {
                       debugPrint('DEBUG: Save clicked');
 
+                      final studentCode = codeController.text.trim();
+                      if (studentCode.isEmpty ||
+                          !_isValidStudentCode(studentCode)) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'يرجى إدخال كود صالح بصيغة حرف/حروف ثم أرقام (مثل A001)',
+                              ),
+                            ),
+                          );
+                        }
+                        return;
+                      }
+
                       final changes = <String, dynamic>{
                         'Student_Name': nameController.text.trim(),
                         'Mobile_No': mobileController.text.trim(),
-                        'Student_Code': codeController.text.trim(),
+                        'Student_Code': studentCode,
                       };
 
                       if (selectedGroupId != null)
@@ -850,10 +904,9 @@ class _StudentsScreenState extends State<StudentsScreen> {
                       controller: codeController,
                       decoration: const InputDecoration(
                         labelText:
-                            'كود الطالب (يُستخدم إذا لم يوجد طلاب في المجموعة)',
+                            'كود الطالب (صيغة: حرف/حروف ثم أرقام مثل A001)',
                         border: OutlineInputBorder(),
                       ),
-                      keyboardType: TextInputType.number,
                     ),
                     const SizedBox(height: 16),
                     SearchableLovField<dynamic>(
@@ -983,28 +1036,29 @@ class _StudentsScreenState extends State<StudentsScreen> {
                     if (targetTypeId != null)
                       studentData['Type_id'] = targetTypeId;
 
-                    // Auto-generate Student_Code: max(Student_Code) for the group + 1.
-                    // If no students exist in the group, require user input.
-                    final maxCodeRow = await _client
+                    // Auto-generate Student_Code from existing values like A001 -> A002.
+                    // If no valid existing format is found, require user input.
+                    final existingCodesRes = await _client
                         .from('Students')
                         .select('Student_Code')
-                        .eq('Group_id', targetGroupId)
-                        .order('Student_Code', ascending: false)
-                        .limit(1)
-                        .maybeSingle();
+                        .eq('Group_id', targetGroupId);
 
-                    final existingCode = maxCodeRow?['Student_Code'];
-                    if (existingCode != null) {
-                      final parsed = int.tryParse(existingCode.toString());
-                      final nextCode = parsed != null ? parsed + 1 : 1;
+                    final existingCodes = existingCodesRes is List
+                        ? existingCodesRes
+                              .map((r) => (r as Map<String, dynamic>)['Student_Code'])
+                              .toList()
+                        : <dynamic>[];
+
+                    final nextCode = _buildNextStudentCode(existingCodes);
+                    if (nextCode != null) {
                       studentData['Student_Code'] = nextCode;
                     } else {
                       final manualCode = codeController.text.trim();
-                      if (manualCode.isEmpty) {
+                      if (manualCode.isEmpty || !_isValidStudentCode(manualCode)) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text(
-                              'لا يوجد طلاب في هذه المجموعة، يرجى إدخال كود الطالب يدويًا',
+                              'لا يوجد كود صالح للتوليد التلقائي، يرجى إدخال كود بصيغة حرف/حروف ثم أرقام (مثل A001)',
                             ),
                           ),
                         );

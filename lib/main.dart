@@ -1154,6 +1154,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
   final _client = Supabase.instance.client;
   bool _loading = true;
   List<Map<String, dynamic>> _groups = [];
+  Map<int, int> _groupStudentCounts = {};
   // per-group students
   bool _studentsLoading = false;
   List<Map<String, dynamic>> _students = [];
@@ -1218,22 +1219,32 @@ class _GroupsScreenState extends State<GroupsScreen> {
   Future<void> _fetchGroups() async {
     setState(() => _loading = true);
     try {
-      // Fetch groups and include nested Students to compute counts on the client.
-      // Apply Group_id filter if user has restriction
+      // Fetch groups first, then get exact counts per group to avoid range caps.
       var builder = _client
           .from('Groups')
-          .select('id, "Group_Name", Students(id)');
+          .select('id, "Group_Name"');
       if (!widget.userSession.hasFullAccess && _userGroupId != null) {
         builder = builder.eq('id', _userGroupId!);
       }
       final res = await builder.range(0, 1000);
       if (res is List) {
         _groups = List<Map<String, dynamic>>.from(res);
+        final groupIds = _groups
+            .map((g) {
+              final rawId = g['id'];
+              if (rawId is int) return rawId;
+              return int.tryParse(rawId?.toString() ?? '');
+            })
+            .whereType<int>()
+            .toList();
+        _groupStudentCounts = await _fetchStudentCountsForGroups(groupIds);
       } else {
         _groups = [];
+        _groupStudentCounts = {};
       }
     } catch (e) {
       _groups = [];
+      _groupStudentCounts = {};
       debugPrint('GroupsScreen: fetch error: $e');
       if (mounted)
         ScaffoldMessenger.of(
@@ -1242,6 +1253,22 @@ class _GroupsScreenState extends State<GroupsScreen> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<Map<int, int>> _fetchStudentCountsForGroups(List<int> groupIds) async {
+    final counts = <int, int>{};
+    for (final groupId in groupIds) {
+      try {
+        final response = await _client
+            .from('Students')
+            .select('id', const FetchOptions(count: CountOption.exact))
+            .eq('Group_id', groupId);
+        counts[groupId] = response.count ?? 0;
+      } catch (_) {
+        counts[groupId] = 0;
+      }
+    }
+    return counts;
   }
 
   @override
@@ -1302,15 +1329,17 @@ class _GroupsScreenState extends State<GroupsScreen> {
                               itemBuilder: (context, idx) {
                                 final g = _groups[idx];
                                 final gid = g['id'];
+                                final gidInt = gid is int
+                                  ? gid
+                                  : int.tryParse(gid?.toString() ?? '');
                                 final name =
                                     g['Group_Name'] ??
                                     g['group_name'] ??
                                     g['GroupName'] ??
                                     '';
-                                final studentsList = (g['Students'] is List)
-                                    ? List.from(g['Students'])
-                                    : <dynamic>[];
-                                final count = studentsList.length;
+                                final count = gidInt != null
+                                  ? (_groupStudentCounts[gidInt] ?? 0)
+                                  : 0;
                                 final selected =
                                     _selectedGroupId != null &&
                                     _selectedGroupId == gid;
