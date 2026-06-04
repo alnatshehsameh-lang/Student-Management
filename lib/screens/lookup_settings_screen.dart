@@ -574,6 +574,31 @@ class _SimpleLookupScreenState extends State<_SimpleLookupScreen> {
   bool _saving = false;
   List<Map<String, dynamic>> _rows = [];
 
+  int _extractClassNumberForSort(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return 1 << 30;
+    final direct = int.tryParse(trimmed);
+    if (direct != null) return direct;
+    final match = RegExp(r'\d+').firstMatch(trimmed);
+    if (match != null) {
+      return int.tryParse(match.group(0) ?? '') ?? (1 << 30);
+    }
+    return 1 << 30;
+  }
+
+  int _compareClassRows(Map<String, dynamic> a, Map<String, dynamic> b) {
+    final labelA = (a[widget.valueColumn] ?? '').toString();
+    final labelB = (b[widget.valueColumn] ?? '').toString();
+    final numA = _extractClassNumberForSort(labelA);
+    final numB = _extractClassNumberForSort(labelB);
+    final hasNumA = numA != (1 << 30);
+    final hasNumB = numB != (1 << 30);
+    if (hasNumA && hasNumB && numA != numB) return numA.compareTo(numB);
+    if (hasNumA && !hasNumB) return -1;
+    if (!hasNumA && hasNumB) return 1;
+    return labelA.compareTo(labelB);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -592,6 +617,9 @@ class _SimpleLookupScreenState extends State<_SimpleLookupScreen> {
           .select('id, ${widget.valueColumn}')
           .order(widget.valueColumn);
       _rows = List<Map<String, dynamic>>.from(response as List);
+      if (widget.tableName == 'Classes' || widget.valueColumn == 'Class_Number') {
+        _rows.sort(_compareClassRows);
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(

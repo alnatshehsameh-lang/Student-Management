@@ -48,7 +48,7 @@ class MyApp extends StatelessWidget {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Test Application',
+      title: 'Hosoon Academy',
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: colorScheme,
@@ -922,12 +922,15 @@ class _HomeScreenState extends State<HomeScreen> {
                                           LayoutBuilder(
                                             builder: (context, constraints) {
                                               int columns = 4;
-                                              if (constraints.maxWidth < 1200)
+                                              if (constraints.maxWidth < 1200) {
                                                 columns = 3;
-                                              if (constraints.maxWidth < 900)
+                                              }
+                                              if (constraints.maxWidth < 900) {
                                                 columns = 2;
-                                              if (constraints.maxWidth < 600)
+                                              }
+                                              if (constraints.maxWidth < 600) {
                                                 columns = 1;
+                                              }
 
                                               return GridView.count(
                                                 shrinkWrap: true,
@@ -1246,10 +1249,11 @@ class _GroupsScreenState extends State<GroupsScreen> {
       _groups = [];
       _groupStudentCounts = {};
       debugPrint('GroupsScreen: fetch error: $e');
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Error loading groups: $e')));
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -1452,8 +1456,9 @@ class _GroupsScreenState extends State<GroupsScreen> {
                                 lastDate: DateTime(2100),
                                 locale: const Locale('ar'),
                               );
-                              if (picked != null && mounted)
+                              if (picked != null && mounted) {
                                 setState(() => _reportDate = picked);
+                              }
                               // Refresh submission status when date changes
                               if (mounted) await _refreshTabSubmissionStatus();
                             },
@@ -1580,11 +1585,12 @@ class _GroupsScreenState extends State<GroupsScreen> {
                                               _classEntries = [];
                                             });
                                             // fetch class entries for the chosen group+type (do not load students yet)
-                                            if (_selectedGroupId != null)
+                                            if (_selectedGroupId != null) {
                                               await _fetchClassEntriesForGroupType(
                                                 _selectedGroupId!,
                                                 _selectedTypeId,
                                               );
+                                            }
                                           },
                                           child: AnimatedContainer(
                                             duration: const Duration(
@@ -1653,12 +1659,13 @@ class _GroupsScreenState extends State<GroupsScreen> {
                                                     cidStr;
                                                 _students = [];
                                               });
-                                              if (_selectedGroupId != null)
+                                              if (_selectedGroupId != null) {
                                                 await _fetchStudentsForGroupTypeClass(
                                                   _selectedGroupId!,
                                                   _selectedTypeId,
                                                   _selectedClassId,
                                                 );
+                                              }
                                             },
                                             child: AnimatedContainer(
                                               duration: const Duration(
@@ -1711,11 +1718,12 @@ class _GroupsScreenState extends State<GroupsScreen> {
                                             selected:
                                                 _activeReportTab == 'tadabur',
                                             onSelected: (v) {
-                                              if (v)
+                                              if (v) {
                                                 setState(
                                                   () => _activeReportTab =
                                                       'tadabur',
                                                 );
+                                              }
                                             },
                                           ),
                                           const SizedBox(width: 8),
@@ -1724,11 +1732,12 @@ class _GroupsScreenState extends State<GroupsScreen> {
                                             selected:
                                                 _activeReportTab == 'sard',
                                             onSelected: (v) {
-                                              if (v)
+                                              if (v) {
                                                 setState(
                                                   () =>
                                                       _activeReportTab = 'sard',
                                                 );
+                                              }
                                             },
                                           ),
                                         ],
@@ -2078,7 +2087,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
                                                               }
                                                             }
                                                           } catch (e) {
-                                                            if (mounted)
+                                                            if (mounted) {
                                                               ScaffoldMessenger.of(
                                                                 context,
                                                               ).showSnackBar(
@@ -2088,6 +2097,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
                                                                   ),
                                                                 ),
                                                               );
+                                                            }
                                                           }
                                                         }
                                                       }
@@ -2209,10 +2219,11 @@ class _GroupsScreenState extends State<GroupsScreen> {
       await _fetchTypeEntriesForGroup(groupId);
     } catch (e) {
       debugPrint('GroupsScreen: fetch types error: $e');
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('خطأ أثناء تحميل الأنواع: $e')));
+      }
     } finally {
       if (mounted) setState(() => _studentsLoading = false);
     }
@@ -2227,8 +2238,9 @@ class _GroupsScreenState extends State<GroupsScreen> {
           .eq('Group_id', groupId);
       // Apply restrictions if user has them
       if (!widget.userSession.hasFullAccess) {
-        if (_userClassId != null)
+        if (_userClassId != null) {
           builder = builder.eq('Class_id', _userClassId!);
+        }
         if (_userTypeId != null) builder = builder.eq('Type_id', _userTypeId!);
       }
       final res = await builder.range(0, 1000);
@@ -2328,8 +2340,14 @@ class _GroupsScreenState extends State<GroupsScreen> {
       }
       // numeric-aware sort ascending by Class_Number when possible
       int parseNum(String s) {
-        final n = int.tryParse(s);
-        return n ?? 1 << 30; // non-numeric large value to push to end
+        final trimmed = s.trim();
+        final direct = int.tryParse(trimmed);
+        if (direct != null) return direct;
+        final match = RegExp(r'\d+').firstMatch(trimmed);
+        if (match != null) {
+          return int.tryParse(match.group(0) ?? '') ?? (1 << 30);
+        }
+        return 1 << 30; // non-numeric large value to push to end
       }
 
       _classEntries.sort((a, b) {
@@ -2370,10 +2388,12 @@ class _GroupsScreenState extends State<GroupsScreen> {
       if (classId != null) builder = builder.eq('Class_id', classId);
       // Apply restrictions if user has them
       if (!widget.userSession.hasFullAccess) {
-        if (_userClassId != null)
+        if (_userClassId != null) {
           builder = builder.eq('Class_id', _userClassId!);
-        if (_userGroupId != null)
+        }
+        if (_userGroupId != null) {
           builder = builder.eq('Group_id', _userGroupId!);
+        }
         if (_userTypeId != null) builder = builder.eq('Type_id', _userTypeId!);
       }
       final res = await builder.order('id', ascending: true).range(0, 1000);
@@ -2411,10 +2431,11 @@ class _GroupsScreenState extends State<GroupsScreen> {
     } catch (e) {
       _students = [];
       debugPrint('GroupsScreen: fetch students by type+class error: $e');
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error loading students for selection: $e')),
         );
+      }
     } finally {
       if (mounted) setState(() => _studentsLoading = false);
       // Refresh whether tadabur/sard were already submitted for this class+date
@@ -2488,8 +2509,9 @@ class _GroupsScreenState extends State<GroupsScreen> {
     if (mounted) {
       setState(() {
         _debugLogs.insert(0, line);
-        if (_debugLogs.length > 500)
+        if (_debugLogs.length > 500) {
           _debugLogs.removeRange(500, _debugLogs.length);
+        }
       });
     }
   }
@@ -2617,23 +2639,26 @@ class _GroupsScreenState extends State<GroupsScreen> {
       if (mounted) await _refreshTabSubmissionStatus();
 
       final msg = 'حفظ: $inserted مدرج، $updated محدث، $verified تم التحقق';
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(msg)));
+      }
       if (failures.isNotEmpty) {
         _logDebug('Attendance failures: ${failures.join('; ')}');
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('بعض السجلات فشلت: ${failures.length}')),
           );
+        }
       }
     } catch (e) {
       _logDebug('Save attendance error: $e');
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('خطأ حفظ الحضور: $e')));
+      }
     } finally {
       if (mounted) setState(() => _savingAttendance = false);
     }

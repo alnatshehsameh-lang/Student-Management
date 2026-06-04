@@ -1,6 +1,6 @@
 {
-    "name": "test_application",
-    "short_name": "test_application",
+    "name": "Hosoon Academy",
+    "short_name": "Hosoon Academy",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

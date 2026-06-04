@@ -35,6 +35,31 @@ class _AttendanceStats {
 class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
   final _client = Supabase.instance.client;
 
+  int _extractClassNumberForSort(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return 1 << 30;
+    final direct = int.tryParse(trimmed);
+    if (direct != null) return direct;
+    final match = RegExp(r'\d+').firstMatch(trimmed);
+    if (match != null) {
+      return int.tryParse(match.group(0) ?? '') ?? (1 << 30);
+    }
+    return 1 << 30;
+  }
+
+  int _compareClassRows(Map<String, dynamic> a, Map<String, dynamic> b) {
+    final labelA = (a['Class_Number'] ?? '').toString();
+    final labelB = (b['Class_Number'] ?? '').toString();
+    final numA = _extractClassNumberForSort(labelA);
+    final numB = _extractClassNumberForSort(labelB);
+    final hasNumA = numA != (1 << 30);
+    final hasNumB = numB != (1 << 30);
+    if (hasNumA && hasNumB && numA != numB) return numA.compareTo(numB);
+    if (hasNumA && !hasNumB) return -1;
+    if (!hasNumA && hasNumB) return 1;
+    return labelA.compareTo(labelB);
+  }
+
   // Filters
   dynamic _selectedGroupId;
   dynamic _selectedTypeId;
@@ -56,6 +81,7 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
   int? _userGroupId;
   int? _userTypeId;
   int? _userClassId;
+  List<Map<String, dynamic>> _managerAssignments = [];
 
   @override
   void initState() {
@@ -74,14 +100,32 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
           .from('Managers')
           .select('Class_id, Group_id, Type_id')
           .eq('User_id', widget.userSession.userId!)
-          .limit(1)
-          .maybeSingle();
+          .order('id');
 
-      if (response != null && mounted) {
+      if (response is List && response.isNotEmpty && mounted) {
+        final assignments = List<Map<String, dynamic>>.from(response);
+        final classIds = assignments
+            .map((e) => e['Class_id'])
+            .whereType<int>()
+            .toSet()
+            .toList();
+        final groupIds = assignments
+            .map((e) => e['Group_id'])
+            .whereType<int>()
+            .toSet()
+            .toList();
+        final typeIds = assignments
+            .map((e) => e['Type_id'])
+            .whereType<int>()
+            .toSet()
+            .toList();
+
         setState(() {
-          _userClassId = response['Class_id'];
-          _userGroupId = response['Group_id'];
-          _userTypeId = response['Type_id'];
+          _managerAssignments = assignments;
+          // Keep legacy single-value fields for compatibility in the rest of this screen.
+          _userClassId = classIds.length == 1 ? classIds.first : null;
+          _userGroupId = groupIds.length == 1 ? groupIds.first : null;
+          _userTypeId = typeIds.length == 1 ? typeIds.first : null;
         });
       }
     } catch (e) {
@@ -94,10 +138,30 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
   Future<void> _loadFilterOptions() async {
     setState(() => _filtersLoading = true);
     try {
+      final allowedClassIds = _managerAssignments
+          .map((e) => e['Class_id'])
+          .whereType<int>()
+          .toSet()
+          .toList();
+      final allowedGroupIds = _managerAssignments
+          .map((e) => e['Group_id'])
+          .whereType<int>()
+          .toSet()
+          .toList();
+      final allowedTypeIds = _managerAssignments
+          .map((e) => e['Type_id'])
+          .whereType<int>()
+          .toSet()
+          .toList();
+
       // Load groups
       var groupsBuilder = _client.from('Groups').select('id, "Group_Name"');
-      if (!widget.userSession.hasFullAccess && _userGroupId != null) {
-        groupsBuilder = groupsBuilder.eq('id', _userGroupId!);
+      if (!widget.userSession.hasFullAccess) {
+        if (allowedGroupIds.isNotEmpty) {
+          groupsBuilder = groupsBuilder.in_('id', allowedGroupIds);
+        } else if (_userGroupId != null) {
+          groupsBuilder = groupsBuilder.eq('id', _userGroupId!);
+        }
       }
       final groupsRes = await groupsBuilder.order('Group_Name');
       if (groupsRes is List) {
@@ -106,8 +170,12 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
 
       // Load types
       var typesBuilder = _client.from('Types').select('id, "Type"');
-      if (!widget.userSession.hasFullAccess && _userTypeId != null) {
-        typesBuilder = typesBuilder.eq('id', _userTypeId!);
+      if (!widget.userSession.hasFullAccess) {
+        if (allowedTypeIds.isNotEmpty) {
+          typesBuilder = typesBuilder.in_('id', allowedTypeIds);
+        } else if (_userTypeId != null) {
+          typesBuilder = typesBuilder.eq('id', _userTypeId!);
+        }
       }
       final typesRes = await typesBuilder.order('Type');
       if (typesRes is List) {
@@ -116,12 +184,17 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
 
       // Load classes
       var classesBuilder = _client.from('Classes').select('id, "Class_Number"');
-      if (!widget.userSession.hasFullAccess && _userClassId != null) {
-        classesBuilder = classesBuilder.eq('id', _userClassId!);
+      if (!widget.userSession.hasFullAccess) {
+        if (allowedClassIds.isNotEmpty) {
+          classesBuilder = classesBuilder.in_('id', allowedClassIds);
+        } else if (_userClassId != null) {
+          classesBuilder = classesBuilder.eq('id', _userClassId!);
+        }
       }
       final classesRes = await classesBuilder.order('Class_Number');
       if (classesRes is List) {
         _classes = List<Map<String, dynamic>>.from(classesRes);
+        _classes.sort(_compareClassRows);
       }
 
       if (mounted) setState(() => _filtersLoading = false);
@@ -280,12 +353,15 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
       // Add statistics summary (compute stats from report data)
       var attend = 0, absent = 0, excuse = 0;
       for (final record in _reportData) {
-        if (record['Attend_flag'] == true || record['Attend_flag'] == 1)
+        if (record['Attend_flag'] == true || record['Attend_flag'] == 1) {
           attend++;
-        if (record['Absent_flag'] == true || record['Absent_flag'] == 1)
+        }
+        if (record['Absent_flag'] == true || record['Absent_flag'] == 1) {
           absent++;
-        if (record['Execuse_flag'] == true || record['Execuse_flag'] == 1)
+        }
+        if (record['Execuse_flag'] == true || record['Execuse_flag'] == 1) {
           excuse++;
+        }
       }
 
       sheet.appendRow([excel_pkg.TextCellValue('ملخص الإحصائيات')]);
@@ -441,12 +517,15 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
       // Compute statistics
       var attend = 0, absent = 0, excuse = 0;
       for (final record in _reportData) {
-        if (record['Attend_flag'] == true || record['Attend_flag'] == 1)
+        if (record['Attend_flag'] == true || record['Attend_flag'] == 1) {
           attend++;
-        if (record['Absent_flag'] == true || record['Absent_flag'] == 1)
+        }
+        if (record['Absent_flag'] == true || record['Absent_flag'] == 1) {
           absent++;
-        if (record['Execuse_flag'] == true || record['Execuse_flag'] == 1)
+        }
+        if (record['Execuse_flag'] == true || record['Execuse_flag'] == 1) {
           excuse++;
+        }
       }
 
       pdf.addPage(
@@ -991,8 +1070,9 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
     for (final record in _reportData) {
       if (record['Attend_flag'] == true || record['Attend_flag'] == 1) attend++;
       if (record['Absent_flag'] == true || record['Absent_flag'] == 1) absent++;
-      if (record['Execuse_flag'] == true || record['Execuse_flag'] == 1)
+      if (record['Execuse_flag'] == true || record['Execuse_flag'] == 1) {
         excuse++;
+      }
     }
 
     return _AttendanceStats(attend: attend, absent: absent, excuse: excuse);

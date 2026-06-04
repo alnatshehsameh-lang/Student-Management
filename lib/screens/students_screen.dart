@@ -20,6 +20,30 @@ class StudentsScreen extends StatefulWidget {
 }
 
 class _StudentsScreenState extends State<StudentsScreen> {
+    int _extractClassNumberForSort(String value) {
+      final trimmed = value.trim();
+      if (trimmed.isEmpty) return 1 << 30;
+      final direct = int.tryParse(trimmed);
+      if (direct != null) return direct;
+      final match = RegExp(r'\d+').firstMatch(trimmed);
+      if (match != null) {
+        return int.tryParse(match.group(0) ?? '') ?? (1 << 30);
+      }
+      return 1 << 30;
+    }
+
+    int _compareClassOptionIds(dynamic a, dynamic b) {
+      final labelA = (_classesMap[a] ?? a?.toString() ?? '').toString();
+      final labelB = (_classesMap[b] ?? b?.toString() ?? '').toString();
+      final numA = _extractClassNumberForSort(labelA);
+      final numB = _extractClassNumberForSort(labelB);
+      final hasNumA = numA != (1 << 30);
+      final hasNumB = numB != (1 << 30);
+      if (hasNumA && hasNumB && numA != numB) return numA.compareTo(numB);
+      if (hasNumA && !hasNumB) return -1;
+      if (!hasNumA && hasNumB) return 1;
+      return labelA.compareTo(labelB);
+    }
   late final dynamic _client = widget.client ?? Supabase.instance.client;
   bool _loading = true;
   bool _exporting = false;
@@ -98,7 +122,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
         _classOptions = _classesMap.keys.whereType<int>().toList();
         _typeOptions = _typesMap.keys.whereType<int>().toList();
         _groupOptions.sort();
-        _classOptions.sort();
+        _classOptions.sort(_compareClassOptionIds);
         _typeOptions.sort();
       } else {
         // fallback: fetch from Students table like before (legacy schema)
@@ -113,12 +137,15 @@ class _StudentsScreenState extends State<StudentsScreen> {
         List<Map<String, dynamic>> classList = [];
 
         if (futures.isNotEmpty) {
-          if (futures[0] is List)
+          if (futures[0] is List) {
             typeList = List<Map<String, dynamic>>.from(futures[0]);
-          if (futures.length > 1 && futures[1] is List)
+          }
+          if (futures.length > 1 && futures[1] is List) {
             classNumList = List<Map<String, dynamic>>.from(futures[1]);
-          if (futures.length > 2 && futures[2] is List)
+          }
+          if (futures.length > 2 && futures[2] is List) {
             classList = List<Map<String, dynamic>>.from(futures[2]);
+          }
         }
 
         final types = typeList
@@ -141,7 +168,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
             .toList();
 
         types.sort();
-        classNums.sort();
+        classNums.sort(_compareClassOptionIds);
         groups.sort();
 
         setState(() {
@@ -266,18 +293,22 @@ class _StudentsScreenState extends State<StudentsScreen> {
       debugPrint(
         'StudentsScreen: fetched ${_rows.length} rows for page $_pageIndex',
       );
-      if (_rows.isNotEmpty)
+      if (_rows.isNotEmpty) {
         debugPrint(
           'First row keys: ${_rows.first.keys} values: ${_rows.first}',
         );
+      }
       // If lookup maps are empty (permissions or earlier load failure), try loading them now
       try {
-        if (_groupsMap.isEmpty)
+        if (_groupsMap.isEmpty) {
           await _loadLookupTable('Groups', 'Group_Name', _groupsMap);
-        if (_classesMap.isEmpty)
+        }
+        if (_classesMap.isEmpty) {
           await _loadLookupTable('Classes', 'Class_Number', _classesMap);
-        if (_typesMap.isEmpty)
+        }
+        if (_typesMap.isEmpty) {
           await _loadLookupTable('Types', 'Type', _typesMap);
+        }
         if (mounted) setState(() {});
       } catch (_) {
         // ignore lookup reload failures
@@ -785,10 +816,12 @@ class _StudentsScreenState extends State<StudentsScreen> {
                         'Student_Code': studentCode,
                       };
 
-                      if (selectedGroupId != null)
+                      if (selectedGroupId != null) {
                         changes['Group_id'] = selectedGroupId;
-                      if (selectedTypeId != null)
+                      }
+                      if (selectedTypeId != null) {
                         changes['Type_id'] = selectedTypeId;
+                      }
 
                       // Find the Class_id based on Class_Number, Group_id, and Type_id
                       if (currentClassNumber.isNotEmpty) {
@@ -1031,10 +1064,12 @@ class _StudentsScreenState extends State<StudentsScreen> {
                     }
 
                     studentData['Group_id'] = targetGroupId;
-                    if (targetClassId != null)
+                    if (targetClassId != null) {
                       studentData['Class_id'] = targetClassId;
-                    if (targetTypeId != null)
+                    }
+                    if (targetTypeId != null) {
                       studentData['Type_id'] = targetTypeId;
+                    }
 
                     // Auto-generate Student_Code from existing values like A001 -> A002.
                     // If no valid existing format is found, require user input.

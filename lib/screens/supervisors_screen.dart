@@ -17,6 +17,31 @@ class SupervisorsScreen extends StatefulWidget {
 class _SupervisorsScreenState extends State<SupervisorsScreen> {
   final _client = Supabase.instance.client;
 
+  int _extractClassNumberForSort(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return 1 << 30;
+    final direct = int.tryParse(trimmed);
+    if (direct != null) return direct;
+    final match = RegExp(r'\d+').firstMatch(trimmed);
+    if (match != null) {
+      return int.tryParse(match.group(0) ?? '') ?? (1 << 30);
+    }
+    return 1 << 30;
+  }
+
+  int _compareClassRows(Map<String, dynamic> a, Map<String, dynamic> b) {
+    final labelA = (a['Class_Number'] ?? '').toString();
+    final labelB = (b['Class_Number'] ?? '').toString();
+    final numA = _extractClassNumberForSort(labelA);
+    final numB = _extractClassNumberForSort(labelB);
+    final hasNumA = numA != (1 << 30);
+    final hasNumB = numB != (1 << 30);
+    if (hasNumA && hasNumB && numA != numB) return numA.compareTo(numB);
+    if (hasNumA && !hasNumB) return -1;
+    if (!hasNumA && hasNumB) return 1;
+    return labelA.compareTo(labelB);
+  }
+
   bool _loading = true;
   bool _saving = false;
 
@@ -64,6 +89,7 @@ class _SupervisorsScreenState extends State<SupervisorsScreen> {
 
       _users = List<Map<String, dynamic>>.from(lookups[0] as List);
       _classes = List<Map<String, dynamic>>.from(lookups[1] as List);
+      _classes.sort(_compareClassRows);
       _groups = List<Map<String, dynamic>>.from(lookups[2] as List);
       _types = List<Map<String, dynamic>>.from(lookups[3] as List);
 
