@@ -33,6 +33,26 @@
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
+  <script>
+    // Keep the visible browser/PWA title fixed to the brand name.
+    (function () {
+      const fixedTitle = 'Hosoon Academy';
+      const applyTitle = () => {
+        if (document.title !== fixedTitle) {
+          document.title = fixedTitle;
+        }
+      };
+
+      applyTitle();
+      window.addEventListener('load', applyTitle);
+
+      const titleNode = document.querySelector('title');
+      if (titleNode) {
+        const observer = new MutationObserver(applyTitle);
+        observer.observe(titleNode, { childList: true });
+      }
+    })();
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
