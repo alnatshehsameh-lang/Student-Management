@@ -162,9 +162,24 @@ class _WeeklyWerdSubmissionScreenState extends State<WeeklyWerdSubmissionScreen>
       builder = builder.eq('Group_id', sharedLink['Group_id']);
     }
 
-    final studentsRes = await builder.order('Student_Name').limit(500);
+    const pageSize = 1000;
+    var from = 0;
+    final students = <Map<String, dynamic>>[];
+    while (true) {
+      final pageRes = await builder
+          .order('Student_Name')
+          .range(from, from + pageSize - 1);
+      if (pageRes is! List || pageRes.isEmpty) {
+        break;
+      }
+      students.addAll(List<Map<String, dynamic>>.from(pageRes));
+      if (pageRes.length < pageSize) {
+        break;
+      }
+      from += pageSize;
+    }
 
-    if (studentsRes is! List || studentsRes.isEmpty) {
+    if (students.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -173,8 +188,6 @@ class _WeeklyWerdSubmissionScreenState extends State<WeeklyWerdSubmissionScreen>
       }
       return;
     }
-
-    final students = List<Map<String, dynamic>>.from(studentsRes);
 
     if (!mounted) return;
 

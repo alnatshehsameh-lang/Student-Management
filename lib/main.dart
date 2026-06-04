@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'screens/students_screen.dart';
 import 'screens/attendance_report_screen.dart';
+import 'screens/reports_dashboard_screen.dart';
 import 'screens/lookup_settings_screen.dart';
 import 'screens/supervisors_screen.dart';
 import 'models/user_session.dart';
@@ -797,6 +798,21 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                 ),
                                 _NavItem(
+                                  icon: Icons.dashboard_customize,
+                                  label: 'Dashboard التحليلات',
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            ReportsDashboardScreen(
+                                              userSession: widget.userSession,
+                                            ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                _NavItem(
                                   icon: Icons.assessment,
                                   label: 'تقرير الحضور',
                                   onTap: () {
@@ -1185,6 +1201,10 @@ class _GroupsScreenState extends State<GroupsScreen> {
   int? _userClassId;
   int? _userGroupId;
   int? _userTypeId;
+  final Set<int> _allowedClassIds = <int>{};
+  final Set<int> _allowedGroupIds = <int>{};
+  final Set<int> _allowedTypeIds = <int>{};
+  List<Map<String, dynamic>> _managerAssignments = [];
 
   @override
   void initState() {
@@ -1204,19 +1224,67 @@ class _GroupsScreenState extends State<GroupsScreen> {
           .from('Managers')
           .select('Class_id, Group_id, Type_id')
           .eq('User_id', widget.userSession.userId!)
-          .limit(1)
-          .maybeSingle();
+          .order('id');
 
-      if (response != null) {
+      if (response is List && response.isNotEmpty) {
+        final rows = List<Map<String, dynamic>>.from(response);
+        final classIds = rows
+            .map((r) => r['Class_id'])
+            .whereType<int>()
+            .toSet();
+        final groupIds = rows
+            .map((r) => r['Group_id'])
+            .whereType<int>()
+            .toSet();
+        final typeIds = rows
+            .map((r) => r['Type_id'])
+            .whereType<int>()
+            .toSet();
+
         setState(() {
-          _userClassId = response['Class_id'];
-          _userGroupId = response['Group_id'];
-          _userTypeId = response['Type_id'];
+          _managerAssignments = rows;
+          _allowedClassIds
+            ..clear()
+            ..addAll(classIds);
+          _allowedGroupIds
+            ..clear()
+            ..addAll(groupIds);
+          _allowedTypeIds
+            ..clear()
+            ..addAll(typeIds);
+
+          // Keep legacy single-value fields for existing conditions.
+          _userClassId = classIds.length == 1 ? classIds.first : null;
+          _userGroupId = groupIds.length == 1 ? groupIds.first : null;
+          _userTypeId = typeIds.length == 1 ? typeIds.first : null;
         });
       }
     } catch (e) {
       debugPrint('Failed to fetch user restrictions from Managers: $e');
     }
+  }
+
+  List<Map<String, dynamic>> _scopedAssignments({
+    int? groupId,
+    int? typeId,
+    int? classId,
+  }) {
+    if (_managerAssignments.isEmpty) return const [];
+
+    bool matches(dynamic assignmentValue, int? selected) {
+      if (assignmentValue == null) return true;
+      if (selected == null) return false;
+      final parsed = assignmentValue is int
+          ? assignmentValue
+          : int.tryParse(assignmentValue.toString());
+      return parsed == selected;
+    }
+
+    return _managerAssignments.where((a) {
+      return matches(a['Group_id'], groupId) &&
+          matches(a['Type_id'], typeId) &&
+          matches(a['Class_id'], classId);
+    }).toList();
   }
 
   Future<void> _fetchGroups() async {
@@ -1226,12 +1294,30 @@ class _GroupsScreenState extends State<GroupsScreen> {
       var builder = _client
           .from('Groups')
           .select('id, "Group_Name"');
-      if (!widget.userSession.hasFullAccess && _userGroupId != null) {
-        builder = builder.eq('id', _userGroupId!);
+      if (!widget.userSession.hasFullAccess) {
+        if (_allowedGroupIds.isNotEmpty) {
+          builder = builder.in_('id', _allowedGroupIds.toList());
+        } else if (_userGroupId != null) {
+          builder = builder.eq('id', _userGroupId!);
+        }
       }
-      final res = await builder.range(0, 1000);
-      if (res is List) {
-        _groups = List<Map<String, dynamic>>.from(res);
+      const pageSize = 1000;
+      var from = 0;
+      final rows = <Map<String, dynamic>>[];
+      while (true) {
+        final pageRes = await builder.range(from, from + pageSize - 1);
+        if (pageRes is! List || pageRes.isEmpty) {
+          break;
+        }
+        rows.addAll(List<Map<String, dynamic>>.from(pageRes));
+        if (pageRes.length < pageSize) {
+          break;
+        }
+        from += pageSize;
+      }
+
+      if (rows.isNotEmpty) {
+        _groups = rows;
         final groupIds = _groups
             .map((g) {
               final rawId = g['id'];
@@ -2238,15 +2324,33 @@ class _GroupsScreenState extends State<GroupsScreen> {
           .eq('Group_id', groupId);
       // Apply restrictions if user has them
       if (!widget.userSession.hasFullAccess) {
-        if (_userClassId != null) {
-          builder = builder.eq('Class_id', _userClassId!);
+        final scoped = _scopedAssignments(groupId: groupId);
+        if (scoped.isNotEmpty) {
+          final allowedTypeIds = scoped
+              .map((a) => a['Type_id'])
+              .whereType<int>()
+              .toSet()
+              .toList();
+          if (allowedTypeIds.isNotEmpty) {
+            builder = builder.in_('Type_id', allowedTypeIds);
+          }
+        } else {
+          if (_allowedTypeIds.isNotEmpty) {
+            builder = builder.in_('Type_id', _allowedTypeIds.toList());
+          } else if (_userTypeId != null) {
+            builder = builder.eq('Type_id', _userTypeId!);
+          }
         }
-        if (_userTypeId != null) builder = builder.eq('Type_id', _userTypeId!);
       }
-      final res = await builder.range(0, 1000);
       final seen = <String, String>{};
-      if (res is List) {
-        for (final r in List<Map<String, dynamic>>.from(res)) {
+      const pageSize = 1000;
+      var from = 0;
+      while (true) {
+        final pageRes = await builder.range(from, from + pageSize - 1);
+        if (pageRes is! List || pageRes.isEmpty) {
+          break;
+        }
+        for (final r in List<Map<String, dynamic>>.from(pageRes)) {
           final tid = r['Type_id'] ?? r['type_id'];
           String label = '';
           if (r['Types'] is List && (r['Types'] as List).isNotEmpty) {
@@ -2258,6 +2362,10 @@ class _GroupsScreenState extends State<GroupsScreen> {
             seen[key] = label;
           }
         }
+        if (pageRes.length < pageSize) {
+          break;
+        }
+        from += pageSize;
       }
       // Fallback: if any label is empty, load Types lookup table
       final needsLookup = seen.values.any((v) => v.isEmpty);
@@ -2302,13 +2410,35 @@ class _GroupsScreenState extends State<GroupsScreen> {
           .eq('Group_id', groupId)
           .eq('Type_id', typeId);
       // Apply class restriction if user has class_id
-      if (!widget.userSession.hasFullAccess && _userClassId != null) {
-        builder = builder.eq('Class_id', _userClassId!);
+      if (!widget.userSession.hasFullAccess) {
+        final scoped = _scopedAssignments(
+          groupId: groupId,
+          typeId: int.tryParse(typeId?.toString() ?? ''),
+        );
+        if (scoped.isNotEmpty) {
+          final allowedClassIds = scoped
+              .map((a) => a['Class_id'])
+              .whereType<int>()
+              .toSet()
+              .toList();
+          if (allowedClassIds.isNotEmpty) {
+            builder = builder.in_('Class_id', allowedClassIds);
+          }
+        } else if (_allowedClassIds.isNotEmpty) {
+          builder = builder.in_('Class_id', _allowedClassIds.toList());
+        } else if (_userClassId != null) {
+          builder = builder.eq('Class_id', _userClassId!);
+        }
       }
-      final res = await builder.range(0, 1000);
       final seen = <String, String>{};
-      if (res is List) {
-        for (final r in List<Map<String, dynamic>>.from(res)) {
+      const pageSize = 1000;
+      var from = 0;
+      while (true) {
+        final pageRes = await builder.range(from, from + pageSize - 1);
+        if (pageRes is! List || pageRes.isEmpty) {
+          break;
+        }
+        for (final r in List<Map<String, dynamic>>.from(pageRes)) {
           final cid = r['Class_id'] ?? r['class_id'];
           String label = '';
           if (r['Classes'] is List && (r['Classes'] as List).isNotEmpty) {
@@ -2318,6 +2448,10 @@ class _GroupsScreenState extends State<GroupsScreen> {
           final key = cid?.toString() ?? '';
           if (key.isNotEmpty && !seen.containsKey(key)) seen[key] = label;
         }
+        if (pageRes.length < pageSize) {
+          break;
+        }
+        from += pageSize;
       }
       // Fallback: if any label is empty, load Classes lookup table
       final needsLookup = seen.values.any((v) => v.isEmpty);
@@ -2388,17 +2522,57 @@ class _GroupsScreenState extends State<GroupsScreen> {
       if (classId != null) builder = builder.eq('Class_id', classId);
       // Apply restrictions if user has them
       if (!widget.userSession.hasFullAccess) {
-        if (_userClassId != null) {
-          builder = builder.eq('Class_id', _userClassId!);
+        final scoped = _scopedAssignments(
+          groupId: groupId,
+          typeId: int.tryParse(typeId?.toString() ?? ''),
+          classId: int.tryParse(classId?.toString() ?? ''),
+        );
+
+        if (scoped.isNotEmpty) {
+          final allowedClassIds = scoped
+              .map((a) => a['Class_id'])
+              .whereType<int>()
+              .toSet()
+              .toList();
+          if (allowedClassIds.isNotEmpty) {
+            builder = builder.in_('Class_id', allowedClassIds);
+          }
+        } else {
+          if (_allowedClassIds.isNotEmpty) {
+            builder = builder.in_('Class_id', _allowedClassIds.toList());
+          } else if (_userClassId != null) {
+            builder = builder.eq('Class_id', _userClassId!);
+          }
+          if (_allowedGroupIds.isNotEmpty) {
+            builder = builder.in_('Group_id', _allowedGroupIds.toList());
+          } else if (_userGroupId != null) {
+            builder = builder.eq('Group_id', _userGroupId!);
+          }
+          if (_allowedTypeIds.isNotEmpty) {
+            builder = builder.in_('Type_id', _allowedTypeIds.toList());
+          } else if (_userTypeId != null) {
+            builder = builder.eq('Type_id', _userTypeId!);
+          }
         }
-        if (_userGroupId != null) {
-          builder = builder.eq('Group_id', _userGroupId!);
-        }
-        if (_userTypeId != null) builder = builder.eq('Type_id', _userTypeId!);
       }
-      final res = await builder.order('id', ascending: true).range(0, 1000);
-      if (res is List) {
-        final rows = List<Map<String, dynamic>>.from(res);
+      const pageSize = 1000;
+      var from = 0;
+      final rows = <Map<String, dynamic>>[];
+      while (true) {
+        final pageRes = await builder
+            .order('id', ascending: true)
+            .range(from, from + pageSize - 1);
+        if (pageRes is! List || pageRes.isEmpty) {
+          break;
+        }
+        rows.addAll(List<Map<String, dynamic>>.from(pageRes));
+        if (pageRes.length < pageSize) {
+          break;
+        }
+        from += pageSize;
+      }
+
+      if (rows.isNotEmpty) {
         _students = rows.map((r) {
           final out = <String, dynamic>{};
           out['id'] = r['id'];
@@ -2528,7 +2702,30 @@ class _GroupsScreenState extends State<GroupsScreen> {
 
     // Validate restrictions: verify user is authorized for selected group/type/class
     if (!widget.userSession.hasFullAccess) {
-      if (_userGroupId != null && _selectedGroupId != _userGroupId) {
+      final selectedGroupIdInt = int.tryParse(_selectedGroupId?.toString() ?? '');
+      final selectedTypeIdInt = int.tryParse(_selectedTypeId?.toString() ?? '');
+      final selectedClassIdInt = int.tryParse(_selectedClassId?.toString() ?? '');
+
+      final scoped = _scopedAssignments(
+        groupId: selectedGroupIdInt,
+        typeId: selectedTypeIdInt,
+        classId: selectedClassIdInt,
+      );
+
+      if (_managerAssignments.isNotEmpty && scoped.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('غير مصرح لك بحفظ الحضور لهذا الاختيار'),
+            ),
+          );
+        }
+        return;
+      }
+
+      if (_allowedGroupIds.isNotEmpty &&
+          (selectedGroupIdInt == null ||
+              !_allowedGroupIds.contains(selectedGroupIdInt))) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -2538,8 +2735,8 @@ class _GroupsScreenState extends State<GroupsScreen> {
         }
         return;
       }
-      if (_userTypeId != null &&
-          _selectedTypeId?.toString() != _userTypeId.toString()) {
+      if (_allowedTypeIds.isNotEmpty &&
+          (selectedTypeIdInt == null || !_allowedTypeIds.contains(selectedTypeIdInt))) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -2549,20 +2746,16 @@ class _GroupsScreenState extends State<GroupsScreen> {
         }
         return;
       }
-      if (_userClassId != null) {
-        final selectedClassIdInt = int.tryParse(
-          _selectedClassId?.toString() ?? '',
-        );
-        if (selectedClassIdInt != _userClassId) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('غير مصرح لك بحفظ الحضور لهذه الحلقة'),
-              ),
-            );
-          }
-          return;
+      if (_allowedClassIds.isNotEmpty &&
+          (selectedClassIdInt == null || !_allowedClassIds.contains(selectedClassIdInt))) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('غير مصرح لك بحفظ الحضور لهذه الحلقة'),
+            ),
+          );
         }
+        return;
       }
     }
 
@@ -2678,8 +2871,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
             .from('Attendance_Tadabur')
             .select('*')
             .eq('Student_id', id)
-            .eq('Report_date', dateStr)
-            .range(0, 1000);
+            .eq('Report_date', dateStr);
         if (tadRows is List) {
           for (final r in List<Map<String, dynamic>>.from(tadRows)) {
             r['_table'] = 'Tadabur';
@@ -2696,8 +2888,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
             .from('Attendance_Sard')
             .select('*')
             .eq('Student_id', id)
-            .eq('Report_date', dateStr)
-            .range(0, 1000);
+            .eq('Report_date', dateStr);
         if (sardRows is List) {
           for (final r in List<Map<String, dynamic>>.from(sardRows)) {
             r['_table'] = 'Sard';
