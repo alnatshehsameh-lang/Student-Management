@@ -1142,10 +1142,13 @@ class _StudentsScreenState extends State<StudentsScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddStudentDialog,
-        backgroundColor: const Color(0xFF6366F1),
-        child: const Icon(Icons.add, color: Colors.white),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 120),
+        child: FloatingActionButton(
+          onPressed: _showAddStudentDialog,
+          backgroundColor: const Color(0xFF6366F1),
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
       ),
       body: Column(
         children: [
