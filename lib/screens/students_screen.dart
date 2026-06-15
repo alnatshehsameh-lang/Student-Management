@@ -617,6 +617,452 @@ class _StudentsScreenState extends State<StudentsScreen> {
     }
   }
 
+  String _formatDateOnly(DateTime date) {
+    final mm = date.month.toString().padLeft(2, '0');
+    final dd = date.day.toString().padLeft(2, '0');
+    return '${date.year}-$mm-$dd';
+  }
+
+  DateTime? _parseDateOnly(dynamic value) {
+    if (value == null) return null;
+    final raw = value.toString().trim();
+    if (raw.isEmpty) return null;
+    return DateTime.tryParse(raw);
+  }
+
+  Future<void> _showAttendanceOverrideDialog(Map<String, dynamic> row) async {
+    if (!(widget.userSession?.hasFullAccess ?? false)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('ليس لديك صلاحية لإدارة تحويلات الحضور'),
+          ),
+        );
+      }
+      return;
+    }
+
+    final studentId = row['id'];
+    if (studentId == null) return;
+
+    final reasonController = TextEditingController();
+    final notesController = TextEditingController();
+    String selectedMode = 'sard';
+    dynamic selectedClassId;
+    dynamic selectedGroupId;
+    dynamic selectedTypeId;
+    DateTime? effectiveFrom;
+    DateTime? effectiveTo;
+    bool isActive = true;
+    int? selectedOverrideId;
+    bool loadingOverrides = true;
+    bool saving = false;
+    List<Map<String, dynamic>> overrides = [];
+
+    Future<void> loadOverrides(StateSetter setDialogState) async {
+      setDialogState(() => loadingOverrides = true);
+      try {
+        final res = await _client
+            .from('Student_Attendance_Overrides')
+            .select(
+              'id, Attendance_Mode, Attend_Class_id, Attend_Group_id, Attend_Type_id, effective_from, effective_to, is_active, reason, notes, created_at',
+            )
+            .eq('Student_id', studentId)
+            .order('created_at', ascending: false);
+
+        overrides = (res is List)
+            ? List<Map<String, dynamic>>.from(res)
+            : <Map<String, dynamic>>[];
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('تعذر تحميل تحويلات الحضور: $e')),
+          );
+        }
+      } finally {
+        setDialogState(() => loadingOverrides = false);
+      }
+    }
+
+    void applyOverride(Map<String, dynamic>? o, StateSetter setDialogState) {
+      setDialogState(() {
+        if (o == null) {
+          selectedOverrideId = null;
+          selectedMode = 'sard';
+          selectedClassId = null;
+          selectedGroupId = null;
+          selectedTypeId = null;
+          effectiveFrom = null;
+          effectiveTo = null;
+          isActive = true;
+          reasonController.clear();
+          notesController.clear();
+          return;
+        }
+
+        selectedOverrideId = (o['id'] as num?)?.toInt();
+        selectedMode = (o['Attendance_Mode'] ?? 'sard').toString();
+        selectedClassId = o['Attend_Class_id'];
+        selectedGroupId = o['Attend_Group_id'];
+        selectedTypeId = o['Attend_Type_id'];
+        effectiveFrom = _parseDateOnly(o['effective_from']);
+        effectiveTo = _parseDateOnly(o['effective_to']);
+        isActive = o['is_active'] == true;
+        reasonController.text = (o['reason'] ?? '').toString();
+        notesController.text = (o['notes'] ?? '').toString();
+      });
+    }
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogInnerContext, setDialogState) {
+            if (loadingOverrides && overrides.isEmpty) {
+              Future.microtask(() => loadOverrides(setDialogState));
+            }
+
+            final overrideItems = <SearchableLovItem<int?>>[
+              const SearchableLovItem<int?>(value: null, label: 'إضافة جديد'),
+              ...overrides.map((o) {
+                final id = (o['id'] as num?)?.toInt();
+                final mode = (o['Attendance_Mode'] ?? '').toString();
+                final active = o['is_active'] == true ? 'نشط' : 'غير نشط';
+                final from = o['effective_from']?.toString() ?? '-';
+                final to = o['effective_to']?.toString() ?? '-';
+                return SearchableLovItem<int?>(
+                  value: id,
+                  label: '$mode | $active | $from -> $to',
+                );
+              }),
+            ];
+
+            Future<void> pickDate({required bool isFrom}) async {
+              final current = isFrom ? effectiveFrom : effectiveTo;
+              final picked = await showDatePicker(
+                context: dialogInnerContext,
+                initialDate: current ?? DateTime.now(),
+                firstDate: DateTime(2000, 1, 1),
+                lastDate: DateTime(2100, 12, 31),
+              );
+              if (picked == null) return;
+              setDialogState(() {
+                if (isFrom) {
+                  effectiveFrom = picked;
+                } else {
+                  effectiveTo = picked;
+                }
+              });
+            }
+
+            Future<void> saveOverride() async {
+              if (selectedClassId == null ||
+                  selectedGroupId == null ||
+                  selectedTypeId == null) {
+                ScaffoldMessenger.of(dialogInnerContext).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'يرجى تحديد الحلقة والمجموعة والرواية للتحويل',
+                    ),
+                  ),
+                );
+                return;
+              }
+              if (effectiveFrom != null &&
+                  effectiveTo != null &&
+                  effectiveTo!.isBefore(effectiveFrom!)) {
+                ScaffoldMessenger.of(dialogInnerContext).showSnackBar(
+                  const SnackBar(
+                    content: Text('تاريخ النهاية يجب أن يكون بعد تاريخ البداية'),
+                  ),
+                );
+                return;
+              }
+
+              setDialogState(() => saving = true);
+              try {
+                final payload = <String, dynamic>{
+                  'Student_id': studentId,
+                  'Attendance_Mode': selectedMode,
+                  'Attend_Class_id': selectedClassId,
+                  'Attend_Group_id': selectedGroupId,
+                  'Attend_Type_id': selectedTypeId,
+                  'effective_from': effectiveFrom == null
+                      ? null
+                      : _formatDateOnly(effectiveFrom!),
+                  'effective_to': effectiveTo == null
+                      ? null
+                      : _formatDateOnly(effectiveTo!),
+                  'is_active': isActive,
+                  'reason': reasonController.text.trim().isEmpty
+                      ? null
+                      : reasonController.text.trim(),
+                  'notes': notesController.text.trim().isEmpty
+                      ? null
+                      : notesController.text.trim(),
+                };
+
+                if (selectedOverrideId == null) {
+                  payload['Created_By_User_id'] = widget.userSession?.userId;
+                  await _client
+                      .from('Student_Attendance_Overrides')
+                      .insert(payload)
+                      .select()
+                      .single();
+                } else {
+                  await _client
+                      .from('Student_Attendance_Overrides')
+                      .update(payload)
+                      .eq('id', selectedOverrideId!)
+                      .select()
+                      .single();
+                }
+
+                await loadOverrides(setDialogState);
+                final selected = overrides.where(
+                  (o) => (o['id'] as num?)?.toInt() == selectedOverrideId,
+                );
+                if (selectedOverrideId != null && selected.isNotEmpty) {
+                  applyOverride(selected.first, setDialogState);
+                }
+
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        selectedOverrideId == null
+                            ? 'تم إنشاء تحويل الحضور'
+                            : 'تم تحديث تحويل الحضور',
+                      ),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('تعذر حفظ التحويل: $e')),
+                  );
+                }
+              } finally {
+                setDialogState(() => saving = false);
+              }
+            }
+
+            Future<void> deactivateOverride() async {
+              if (selectedOverrideId == null) return;
+              setDialogState(() => saving = true);
+              try {
+                await _client
+                    .from('Student_Attendance_Overrides')
+                    .update({'is_active': false})
+                    .eq('id', selectedOverrideId!)
+                    .select()
+                    .single();
+                await loadOverrides(setDialogState);
+                final selected = overrides.where(
+                  (o) => (o['id'] as num?)?.toInt() == selectedOverrideId,
+                );
+                if (selected.isNotEmpty) {
+                  applyOverride(selected.first, setDialogState);
+                }
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('تم تعطيل التحويل')),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('تعذر تعطيل التحويل: $e')),
+                  );
+                }
+              } finally {
+                setDialogState(() => saving = false);
+              }
+            }
+
+            final studentName =
+                (row['Student_Name'] ?? row['student_name'] ?? '').toString();
+
+            return AlertDialog(
+              title: Text('تحويل حضور الطالب: $studentName'),
+              content: SizedBox(
+                width: 520,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SearchableLovField<int?>(
+                        value: selectedOverrideId,
+                        labelText: 'التحويل الحالي',
+                        items: overrideItems,
+                        onChanged: (value) {
+                          final selected = overrides.firstWhere(
+                            (o) => (o['id'] as num?)?.toInt() == value,
+                            orElse: () => <String, dynamic>{},
+                          );
+                          if (selected.isEmpty) {
+                            applyOverride(null, setDialogState);
+                          } else {
+                            applyOverride(selected, setDialogState);
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      SearchableLovField<String>(
+                        value: selectedMode,
+                        labelText: 'نوع الحضور',
+                        items: const [
+                          SearchableLovItem(value: 'sard', label: 'سرد'),
+                          SearchableLovItem(value: 'tadabur', label: 'تدبر'),
+                          SearchableLovItem(value: 'both', label: 'كلاهما'),
+                        ],
+                        onChanged: (value) {
+                          if (value == null) return;
+                          setDialogState(() => selectedMode = value);
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      SearchableLovField<dynamic>(
+                        value: selectedClassId,
+                        labelText: 'الحلقة المستهدفة',
+                        items: _classOptions
+                            .map(
+                              (c) => SearchableLovItem<dynamic>(
+                                value: c,
+                                label: _classesMap[c] ?? c.toString(),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          setDialogState(() => selectedClassId = value);
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      SearchableLovField<dynamic>(
+                        value: selectedGroupId,
+                        labelText: 'المجموعة المستهدفة',
+                        items: _groupOptions
+                            .map(
+                              (g) => SearchableLovItem<dynamic>(
+                                value: g,
+                                label: _groupsMap[g] ?? g.toString(),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          setDialogState(() => selectedGroupId = value);
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      SearchableLovField<dynamic>(
+                        value: selectedTypeId,
+                        labelText: 'الرواية المستهدفة',
+                        items: _typeOptions
+                            .map(
+                              (t) => SearchableLovItem<dynamic>(
+                                value: t,
+                                label: _typesMap[t] ?? t.toString(),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          setDialogState(() => selectedTypeId = value);
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: saving
+                                  ? null
+                                  : () => pickDate(isFrom: true),
+                              icon: const Icon(Icons.date_range),
+                              label: Text(
+                                effectiveFrom == null
+                                    ? 'من تاريخ (اختياري)'
+                                    : 'من: ${_formatDateOnly(effectiveFrom!)}',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: saving
+                                  ? null
+                                  : () => pickDate(isFrom: false),
+                              icon: const Icon(Icons.event),
+                              label: Text(
+                                effectiveTo == null
+                                    ? 'إلى تاريخ (اختياري)'
+                                    : 'إلى: ${_formatDateOnly(effectiveTo!)}',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      SwitchListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        value: isActive,
+                        onChanged: saving
+                            ? null
+                            : (value) =>
+                                  setDialogState(() => isActive = value),
+                        title: const Text('التحويل نشط'),
+                      ),
+                      TextField(
+                        controller: reasonController,
+                        decoration: const InputDecoration(
+                          labelText: 'السبب',
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: notesController,
+                        minLines: 2,
+                        maxLines: 4,
+                        decoration: const InputDecoration(
+                          labelText: 'ملاحظات',
+                        ),
+                      ),
+                      if (loadingOverrides)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 12),
+                          child: LinearProgressIndicator(),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: saving
+                      ? null
+                      : () => Navigator.pop(dialogContext),
+                  child: const Text('إغلاق'),
+                ),
+                if (selectedOverrideId != null)
+                  TextButton(
+                    onPressed: saving ? null : deactivateOverride,
+                    child: const Text('تعطيل'),
+                  ),
+                ElevatedButton(
+                  onPressed: saving ? null : saveOverride,
+                  child: Text(selectedOverrideId == null ? 'إنشاء' : 'حفظ'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _showRowDetails(Map<String, dynamic> row) {
     showDialog(
       context: context,
@@ -1380,6 +1826,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                       onView: _showRowDetails,
                       onEdit: _showEditDialog,
                       onDelete: _deleteRow,
+                      onManageOverride: _showAttendanceOverrideDialog,
                       groupsMap: _groupsMap.isNotEmpty ? _groupsMap : null,
                       typesMap: _typesMap.isNotEmpty ? _typesMap : null,
                       classesMap: _classesMap.isNotEmpty ? _classesMap : null,
@@ -1467,6 +1914,7 @@ class StudentsTable extends StatelessWidget {
   final void Function(Map<String, dynamic>)? onView;
   final void Function(Map<String, dynamic>)? onEdit;
   final Future<void> Function(dynamic id)? onDelete;
+  final void Function(Map<String, dynamic>)? onManageOverride;
   final Map<dynamic, String>? groupsMap;
   final Map<dynamic, String>? typesMap;
   final Map<dynamic, String>? classesMap;
@@ -1477,6 +1925,7 @@ class StudentsTable extends StatelessWidget {
     this.onView,
     this.onEdit,
     this.onDelete,
+    this.onManageOverride,
     this.groupsMap,
     this.typesMap,
     this.classesMap,
@@ -1807,11 +2256,19 @@ class StudentsTable extends StatelessWidget {
                     await onDelete!(row['id']);
                   }
                 });
+              } else if (v == 'override') {
+                if (onManageOverride != null) {
+                  Future.microtask(() => onManageOverride!(row));
+                }
               }
             },
             itemBuilder: (_) => [
               const PopupMenuItem(value: 'view', child: Text('عرض')),
               const PopupMenuItem(value: 'edit', child: Text('تعديل')),
+              const PopupMenuItem(
+                value: 'override',
+                child: Text('تحويل الحضور'),
+              ),
               const PopupMenuItem(value: 'delete', child: Text('حذف')),
             ],
           ),

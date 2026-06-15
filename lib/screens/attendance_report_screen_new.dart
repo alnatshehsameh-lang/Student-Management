@@ -226,19 +226,79 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
       final startDateStr = _startDate!.toIso8601String().split('T')[0];
       final endDateStr = _endDate!.toIso8601String().split('T')[0];
 
+      final overrideRes = await _client
+          .from('Student_Attendance_Overrides')
+          .select(
+            'Student_id, Attendance_Mode, effective_from, effective_to, is_active',
+          )
+          .eq('Attend_Class_id', _selectedClassId)
+          .eq('Attend_Group_id', _selectedGroupId)
+          .eq('Attend_Type_id', _selectedTypeId)
+          .eq('is_active', true)
+          .in_('Attendance_Mode', ['sard', 'tadabur', 'both']);
+
+      bool overlapsRange(Map<String, dynamic> row) {
+        final fromRaw = row['effective_from'];
+        final toRaw = row['effective_to'];
+        final fromDate = fromRaw == null
+            ? null
+            : DateTime.tryParse(fromRaw.toString());
+        final toDate =
+            toRaw == null ? null : DateTime.tryParse(toRaw.toString());
+        final rangeStart = DateTime.parse(startDateStr);
+        final rangeEnd = DateTime.parse(endDateStr);
+
+        if (fromDate != null && fromDate.isAfter(rangeEnd)) return false;
+        if (toDate != null && toDate.isBefore(rangeStart)) return false;
+        return true;
+      }
+
+      final overrideStudentIds = <dynamic>{};
+      if (overrideRes is List) {
+        for (final row in List<Map<String, dynamic>>.from(overrideRes)) {
+          if (!overlapsRange(row)) continue;
+          final sid = row['Student_id'];
+          if (sid != null) {
+            overrideStudentIds.add(sid);
+          }
+        }
+      }
+
       // Optimized query: get students with their attendance in one go
-      final studentsRes = await _client
+      final registeredStudentsRes = await _client
           .from('Students')
-          .select('id, "Student_Name", "Student_Code"')
+          .select('id, "Student_Name", "Student_Code", "Class_id", "Group_id", "Type_id"')
           .eq('Class_id', _selectedClassId)
           .eq('Group_id', _selectedGroupId)
           .eq('Type_id', _selectedTypeId);
 
-      final students = (studentsRes is List)
-          ? List<Map<String, dynamic>>.from(studentsRes)
-          : <Map<String, dynamic>>[];
+      final students = <Map<String, dynamic>>[];
+      if (registeredStudentsRes is List) {
+        students.addAll(List<Map<String, dynamic>>.from(registeredStudentsRes));
+      }
 
-      if (students.isEmpty) {
+      final existingIds = students.map((s) => s['id']).whereType<int>().toSet();
+      final missingOverrideIds = overrideStudentIds
+          .whereType<int>()
+          .where((id) => !existingIds.contains(id))
+          .toList();
+      if (missingOverrideIds.isNotEmpty) {
+        final overrideStudentsRes = await _client
+            .from('Students')
+            .select('id, "Student_Name", "Student_Code", "Class_id", "Group_id", "Type_id"')
+            .in_('id', missingOverrideIds);
+        if (overrideStudentsRes is List) {
+          students.addAll(List<Map<String, dynamic>>.from(overrideStudentsRes));
+        }
+      }
+
+      final studentsById = <dynamic, Map<String, dynamic>>{};
+      for (final student in students) {
+        studentsById[student['id']] = student;
+      }
+      final uniqueStudents = studentsById.values.toList();
+
+      if (uniqueStudents.isEmpty) {
         if (mounted) {
           setState(() => _loading = false);
           ScaffoldMessenger.of(
@@ -248,10 +308,29 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
         return;
       }
 
-      final studentIds = students.map((s) => s['id']).toList();
+      final studentIds = uniqueStudents.map((s) => s['id']).toList();
       final studentMap = <dynamic, Map<String, dynamic>>{};
-      for (final student in students) {
+      for (final student in uniqueStudents) {
         studentMap[student['id']] = student;
+      }
+
+      bool recordMatchesContext(
+        Map<String, dynamic> record,
+        Map<String, dynamic> student,
+      ) {
+        final attendClass = record['Attend_Class_id'];
+        final attendGroup = record['Attend_Group_id'];
+        final attendType = record['Attend_Type_id'];
+        if (attendClass != null || attendGroup != null || attendType != null) {
+          return attendClass == _selectedClassId &&
+              attendGroup == _selectedGroupId &&
+              attendType == _selectedTypeId;
+        }
+
+        // Backward compatibility for legacy rows that don't have attended context
+        return student['Class_id'] == _selectedClassId &&
+            student['Group_id'] == _selectedGroupId &&
+            student['Type_id'] == _selectedTypeId;
       }
 
       final combined = <Map<String, dynamic>>[];
@@ -268,9 +347,11 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
         for (final record in List<Map<String, dynamic>>.from(tadaburRes)) {
           final studentId = record['Student_id'];
           if (studentMap.containsKey(studentId)) {
+            final student = studentMap[studentId]!;
+            if (!recordMatchesContext(record, student)) continue;
             combined.add({
               ...record,
-              'Students': studentMap[studentId],
+              'Students': student,
               '_type': 'تدبر',
             });
           }
@@ -289,9 +370,11 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
         for (final record in List<Map<String, dynamic>>.from(sardRes)) {
           final studentId = record['Student_id'];
           if (studentMap.containsKey(studentId)) {
+            final student = studentMap[studentId]!;
+            if (!recordMatchesContext(record, student)) continue;
             combined.add({
               ...record,
-              'Students': studentMap[studentId],
+              'Students': student,
               '_type': 'سرد',
             });
           }

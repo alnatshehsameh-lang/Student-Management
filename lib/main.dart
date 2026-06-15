@@ -2512,6 +2512,8 @@ class _GroupsScreenState extends State<GroupsScreen> {
       _students = [];
     });
     try {
+      final typeIdInt = int.tryParse(typeId?.toString() ?? '');
+      final classIdInt = int.tryParse(classId?.toString() ?? '');
       var builder = _client
           .from('Students')
           .select(
@@ -2524,8 +2526,8 @@ class _GroupsScreenState extends State<GroupsScreen> {
       if (!widget.userSession.hasFullAccess) {
         final scoped = _scopedAssignments(
           groupId: groupId,
-          typeId: int.tryParse(typeId?.toString() ?? ''),
-          classId: int.tryParse(classId?.toString() ?? ''),
+          typeId: typeIdInt,
+          classId: classIdInt,
         );
 
         if (scoped.isNotEmpty) {
@@ -2572,8 +2574,9 @@ class _GroupsScreenState extends State<GroupsScreen> {
         from += pageSize;
       }
 
+      final studentsById = <int, Map<String, dynamic>>{};
       if (rows.isNotEmpty) {
-        _students = rows.map((r) {
+        for (final r in rows) {
           final out = <String, dynamic>{};
           out['id'] = r['id'];
           out['Student_Name'] =
@@ -2590,8 +2593,66 @@ class _GroupsScreenState extends State<GroupsScreen> {
             final t = (r['Types'] as List).first;
             out['Type'] = t['Type'] ?? t['type'];
           }
-          return out;
-        }).toList();
+          final sid = out['id'];
+          if (sid is int) {
+            studentsById[sid] = out;
+          }
+        }
+
+        if (classIdInt != null && typeIdInt != null) {
+          final overrideIds = await _fetchOverrideStudentIdsForSelection(
+            groupId: groupId,
+            typeId: typeIdInt,
+            classId: classIdInt,
+          );
+          final missingIds = overrideIds
+              .where((id) => !studentsById.containsKey(id))
+              .toList();
+          if (missingIds.isNotEmpty) {
+            try {
+              final overrideRows = await _client
+                  .from('Students')
+                  .select(
+                    'id, "Student_Name", "Student_Code", "Class_id", "Type_id", Classes(id, "Class_Number"), Types(id, "Type")',
+                  )
+                  .in_('id', missingIds)
+                  .order('id', ascending: true);
+              if (overrideRows is List) {
+                for (final r in List<Map<String, dynamic>>.from(overrideRows)) {
+                  final out = <String, dynamic>{};
+                  out['id'] = r['id'];
+                  out['Student_Name'] =
+                      r['Student_Name'] ?? r['student_name'] ?? r['StudentName'];
+                  out['Student_Code'] =
+                      r['Student_Code'] ?? r['student_code'] ?? r['StudentCode'];
+                  out['Class_id'] = r['Class_id'] ?? r['class_id'];
+                  out['Type_id'] = r['Type_id'] ?? r['type_id'];
+                  if (r['Classes'] is List && (r['Classes'] as List).isNotEmpty) {
+                    final c = (r['Classes'] as List).first;
+                    out['Class_Number'] = c['Class_Number'] ?? c['class_number'];
+                  }
+                  if (r['Types'] is List && (r['Types'] as List).isNotEmpty) {
+                    final t = (r['Types'] as List).first;
+                    out['Type'] = t['Type'] ?? t['type'];
+                  }
+                  final sid = out['id'];
+                  if (sid is int) {
+                    studentsById[sid] = out;
+                  }
+                }
+              }
+            } catch (e) {
+              _logDebug('GroupsScreen: load override students failed: $e');
+            }
+          }
+        }
+
+        _students = studentsById.values.toList()
+          ..sort((a, b) {
+            final an = (a['Student_Name'] ?? '').toString();
+            final bn = (b['Student_Name'] ?? '').toString();
+            return an.compareTo(bn);
+          });
         if (_classesMap.isEmpty &&
             _students.any((r) => r['Class_Number'] == null)) {
           await _loadLookupTable('Classes', 'Class_Number', _classesMap);
@@ -2697,6 +2758,66 @@ class _GroupsScreenState extends State<GroupsScreen> {
         : 'Attendance_Sard';
   }
 
+  String _getAttendanceMode() {
+    return _activeReportTab == 'tadabur' ? 'tadabur' : 'sard';
+  }
+
+  DateTime _dateOnly(DateTime dt) {
+    return DateTime(dt.year, dt.month, dt.day);
+  }
+
+  bool _isOverrideActiveOn(Map<String, dynamic> row, DateTime targetDate) {
+    final fromRaw = row['effective_from'];
+    final toRaw = row['effective_to'];
+    final fromDate = fromRaw == null
+        ? null
+        : DateTime.tryParse(fromRaw.toString());
+    final toDate = toRaw == null ? null : DateTime.tryParse(toRaw.toString());
+    final target = _dateOnly(targetDate);
+
+    if (fromDate != null && target.isBefore(_dateOnly(fromDate))) {
+      return false;
+    }
+    if (toDate != null && target.isAfter(_dateOnly(toDate))) {
+      return false;
+    }
+    return true;
+  }
+
+  Future<Set<int>> _fetchOverrideStudentIdsForSelection({
+    required int groupId,
+    required int typeId,
+    required int classId,
+  }) async {
+    try {
+      final res = await _client
+          .from('Student_Attendance_Overrides')
+          .select(
+            'Student_id, Attendance_Mode, effective_from, effective_to, is_active',
+          )
+          .eq('Attend_Group_id', groupId)
+          .eq('Attend_Type_id', typeId)
+          .eq('Attend_Class_id', classId)
+          .eq('is_active', true)
+          .in_('Attendance_Mode', [_getAttendanceMode(), 'both']);
+
+      final ids = <int>{};
+      if (res is List) {
+        for (final row in List<Map<String, dynamic>>.from(res)) {
+          if (!_isOverrideActiveOn(row, _reportDate)) continue;
+          final studentId = row['Student_id'];
+          if (studentId is int) {
+            ids.add(studentId);
+          }
+        }
+      }
+      return ids;
+    } catch (e) {
+      _logDebug('GroupsScreen: fetch override IDs failed: $e');
+      return <int>{};
+    }
+  }
+
   Future<void> _saveAttendance() async {
     if (_selectedClassId == null || _students.isEmpty) return;
 
@@ -2792,6 +2913,9 @@ class _GroupsScreenState extends State<GroupsScreen> {
             'Absent_flag': absent,
             'Execuse_flag': excuse,
             'Report_date': dateStr,
+            'Attend_Class_id': _selectedClassId,
+            'Attend_Group_id': _selectedGroupId,
+            'Attend_Type_id': _selectedTypeId,
           };
 
           if (existingRow != null) {
