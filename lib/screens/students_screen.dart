@@ -73,6 +73,9 @@ class _StudentsScreenState extends State<StudentsScreen> {
   int? _userClassId;
   int? _userGroupId;
   int? _userTypeId;
+  final Set<int> _allowedClassIds = <int>{};
+  final Set<int> _allowedGroupIds = <int>{};
+  final Set<int> _allowedTypeIds = <int>{};
 
   @override
   void initState() {
@@ -86,15 +89,71 @@ class _StudentsScreenState extends State<StudentsScreen> {
   }
 
   Future<void> _fetchUserRestrictions() async {
-    // Skip if admin or no userId or no userSession
+    // Skip if admin/manager
     if (widget.userSession == null || widget.userSession!.hasFullAccess) {
       return;
     }
 
+    final userId = widget.userSession!.userId;
+
+    // Keep session values as fallback.
+    int? resolvedClassId = widget.userSession!.assignedClassId;
+    int? resolvedGroupId = widget.userSession!.assignedGroupId;
+    int? resolvedTypeId = widget.userSession!.assignedTypeId;
+    final allowedClassIds = <int>{};
+    final allowedGroupIds = <int>{};
+    final allowedTypeIds = <int>{};
+
+    int? asInt(dynamic v) {
+      if (v is int) return v;
+      if (v == null) return null;
+      return int.tryParse(v.toString());
+    }
+
+    if (userId != null) {
+      try {
+        final response = await _client
+            .from('Managers')
+            .select('Class_id, Group_id, Type_id')
+            .eq('User_id', userId)
+            .order('id');
+
+        if (response is List && response.isNotEmpty) {
+          for (final row in List<Map<String, dynamic>>.from(response)) {
+            final classId = asInt(row['Class_id']);
+            final groupId = asInt(row['Group_id']);
+            final typeId = asInt(row['Type_id']);
+            if (classId != null) allowedClassIds.add(classId);
+            if (groupId != null) allowedGroupIds.add(groupId);
+            if (typeId != null) allowedTypeIds.add(typeId);
+          }
+
+          resolvedClassId =
+              allowedClassIds.length == 1 ? allowedClassIds.first : null;
+          resolvedGroupId =
+              allowedGroupIds.length == 1 ? allowedGroupIds.first : null;
+          resolvedTypeId =
+              allowedTypeIds.length == 1 ? allowedTypeIds.first : null;
+        }
+      } catch (e) {
+        debugPrint('Failed to fetch user restrictions from Managers: $e');
+      }
+    }
+
+    if (!mounted) return;
     setState(() {
-      _userClassId = widget.userSession!.assignedClassId;
-      _userGroupId = widget.userSession!.assignedGroupId;
-      _userTypeId = widget.userSession!.assignedTypeId;
+      _userClassId = resolvedClassId;
+      _userGroupId = resolvedGroupId;
+      _userTypeId = resolvedTypeId;
+      _allowedClassIds
+        ..clear()
+        ..addAll(allowedClassIds);
+      _allowedGroupIds
+        ..clear()
+        ..addAll(allowedGroupIds);
+      _allowedTypeIds
+        ..clear()
+        ..addAll(allowedTypeIds);
     });
   }
 
@@ -375,9 +434,28 @@ class _StudentsScreenState extends State<StudentsScreen> {
   }
 
   dynamic _applyClassAccessRestriction(dynamic query) {
-    if (!(widget.userSession?.hasFullAccess ?? false) && _userClassId != null) {
-      return query.eq('"Class_id"', _userClassId);
+    if (widget.userSession?.hasFullAccess ?? false) {
+      return query;
     }
+
+    if (_allowedClassIds.isNotEmpty) {
+      query = query.in_('"Class_id"', _allowedClassIds.toList());
+    } else if (_userClassId != null) {
+      query = query.eq('"Class_id"', _userClassId);
+    }
+
+    if (_allowedGroupIds.isNotEmpty) {
+      query = query.in_('"Group_id"', _allowedGroupIds.toList());
+    } else if (_userGroupId != null) {
+      query = query.eq('"Group_id"', _userGroupId);
+    }
+
+    if (_allowedTypeIds.isNotEmpty) {
+      query = query.in_('"Type_id"', _allowedTypeIds.toList());
+    } else if (_userTypeId != null) {
+      query = query.eq('"Type_id"', _userTypeId);
+    }
+
     return query;
   }
 
