@@ -210,6 +210,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
     try {
       // Build filter query
       var query = _client.from('Students').select();
+      query = _applyClassAccessRestriction(query);
       // Filters use FK columns when available
       if (_filterType != null) {
         query = query.eq('"Type_id"', _filterType);
@@ -228,6 +229,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
       // First, get an exact total count using FetchOptions (if supported by client)
       // Build a countQuery with the same filters to attempt a fallback count
       var countQuery = _client.from('Students').select();
+      countQuery = _applyClassAccessRestriction(countQuery);
       if (_filterType != null) {
         countQuery = countQuery.eq('"Type_id"', _filterType);
       }
@@ -332,6 +334,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
 
     while (true) {
       var query = _client.from('Students').select();
+      query = _applyClassAccessRestriction(query);
 
       if (_filterType != null) {
         query = query.eq('"Type_id"', _filterType);
@@ -369,6 +372,13 @@ class _StudentsScreenState extends State<StudentsScreen> {
     }
 
     return allRows;
+  }
+
+  dynamic _applyClassAccessRestriction(dynamic query) {
+    if (!(widget.userSession?.hasFullAccess ?? false) && _userClassId != null) {
+      return query.eq('"Class_id"', _userClassId);
+    }
+    return query;
   }
 
   String _csvCell(String value) {
