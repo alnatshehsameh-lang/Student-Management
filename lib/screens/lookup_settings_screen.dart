@@ -503,33 +503,54 @@ class _UsersLookupScreenState extends State<UsersLookupScreen> {
                                             ),
                                           ),
                                           DataCell(
-                                            Wrap(
-                                              spacing: 8,
-                                              children: [
-                                                IconButton(
-                                                  tooltip: 'تعديل',
-                                                  onPressed: _saving
-                                                      ? null
-                                                      : () => _showUserDialog(
-                                                          row: row,
+                                            SizedBox(
+                                              width: 96,
+                                              child: Wrap(
+                                                spacing: 4,
+                                                runSpacing: 4,
+                                                children: [
+                                                  IconButton(
+                                                    tooltip: 'تعديل',
+                                                    visualDensity:
+                                                        VisualDensity.compact,
+                                                    constraints:
+                                                        const BoxConstraints(
+                                                          minWidth: 36,
+                                                          minHeight: 36,
                                                         ),
-                                                  icon: const Icon(
-                                                    Icons.edit_outlined,
+                                                    padding: EdgeInsets.zero,
+                                                    onPressed: _saving
+                                                        ? null
+                                                        : () =>
+                                                              _showUserDialog(
+                                                                row: row,
+                                                              ),
+                                                    icon: const Icon(
+                                                      Icons.edit_outlined,
+                                                    ),
                                                   ),
-                                                ),
-                                                IconButton(
-                                                  tooltip: 'حذف',
-                                                  onPressed: _saving
-                                                      ? null
-                                                      : () => _deleteUser(
-                                                          (row['id'] as num)
-                                                              .toInt(),
+                                                  IconButton(
+                                                    tooltip: 'حذف',
+                                                    visualDensity:
+                                                        VisualDensity.compact,
+                                                    constraints:
+                                                        const BoxConstraints(
+                                                          minWidth: 36,
+                                                          minHeight: 36,
                                                         ),
-                                                  icon: const Icon(
-                                                    Icons.delete_outline,
+                                                    padding: EdgeInsets.zero,
+                                                    onPressed: _saving
+                                                        ? null
+                                                        : () => _deleteUser(
+                                                            (row['id'] as num)
+                                                                .toInt(),
+                                                          ),
+                                                    icon: const Icon(
+                                                      Icons.delete_outline,
+                                                    ),
                                                   ),
-                                                ),
-                                              ],
+                                                ],
+                                              ),
                                             ),
                                           ),
                                         ],

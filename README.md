@@ -1,4 +1,4 @@
-# test_application
+# Hosoon Academy
 
 Flutter-based student management application with Supabase backend and web deployment via Docker/Render.
 

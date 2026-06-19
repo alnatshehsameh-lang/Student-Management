@@ -92,9 +92,9 @@ BEGIN
             VALUE "CompanyName", "com.example" "\0"
             VALUE "FileDescription", "Hosoon Academy" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "test_application" "\0"
+            VALUE "InternalName", "hosoon_academy" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2025 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "test_application.exe" "\0"
+            VALUE "OriginalFilename", "hosoon_academy.exe" "\0"
             VALUE "ProductName", "Hosoon Academy" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END

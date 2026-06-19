@@ -1,4 +1,4 @@
-package com.example.test_application
+package com.example.hosoon_academy
 
 import io.flutter.embedding.android.FlutterActivity
 

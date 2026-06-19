@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:test_application/screens/students_screen.dart';
+import 'package:hosoon_academy/screens/students_screen.dart';
 
 // A minimal fake Postgrest-like builder to satisfy the chained calls used in StudentsScreen.
 class FakeQuery {
