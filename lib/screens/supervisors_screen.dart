@@ -662,33 +662,55 @@ class _SupervisorsScreenState extends State<SupervisorsScreen> {
                                         ),
                                       ),
                                       DataCell(
-                                        Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            IconButton(
-                                              tooltip: 'تعديل',
-                                              onPressed: _saving
-                                                  ? null
-                                                  : () => _showSupervisorDialog(
-                                                      row: row,
+                                        SizedBox(
+                                          width: 96,
+                                          child: Wrap(
+                                            spacing: 4,
+                                            runSpacing: 4,
+                                            children: [
+                                              IconButton(
+                                                tooltip: 'تعديل',
+                                                visualDensity:
+                                                    VisualDensity.compact,
+                                                constraints:
+                                                    const BoxConstraints(
+                                                      minWidth: 36,
+                                                      minHeight: 36,
                                                     ),
-                                              icon: const Icon(
-                                                Icons.edit,
-                                                color: Colors.blue,
+                                                padding: EdgeInsets.zero,
+                                                onPressed: _saving
+                                                    ? null
+                                                    : () =>
+                                                          _showSupervisorDialog(
+                                                            row: row,
+                                                          ),
+                                                icon: const Icon(
+                                                  Icons.edit,
+                                                  color: Colors.blue,
+                                                ),
                                               ),
-                                            ),
-                                            IconButton(
-                                              tooltip: 'حذف',
-                                              onPressed: _saving
-                                                  ? null
-                                                  : () =>
-                                                        _deleteSupervisor(row),
-                                              icon: const Icon(
-                                                Icons.delete,
-                                                color: Colors.red,
+                                              IconButton(
+                                                tooltip: 'حذف',
+                                                visualDensity:
+                                                    VisualDensity.compact,
+                                                constraints:
+                                                    const BoxConstraints(
+                                                      minWidth: 36,
+                                                      minHeight: 36,
+                                                    ),
+                                                padding: EdgeInsets.zero,
+                                                onPressed: _saving
+                                                    ? null
+                                                    : () => _deleteSupervisor(
+                                                          row,
+                                                        ),
+                                                icon: const Icon(
+                                                  Icons.delete,
+                                                  color: Colors.red,
+                                                ),
                                               ),
-                                            ),
-                                          ],
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     ],
