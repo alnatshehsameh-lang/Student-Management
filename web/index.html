@@ -34,6 +34,33 @@
 </head>
 <body>
   <script>
+    // One-time cleanup for previously installed Flutter service workers/caches.
+    (function () {
+      if (!('serviceWorker' in navigator)) return;
+      const cleanupFlag = 'hosoon_sw_cleanup_v1';
+      if (sessionStorage.getItem(cleanupFlag) === 'done') return;
+
+      window.addEventListener('load', async function () {
+        try {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations.map((registration) => registration.unregister()));
+
+          if ('caches' in window) {
+            const keys = await caches.keys();
+            await Promise.all(keys.map((key) => caches.delete(key)));
+          }
+
+          sessionStorage.setItem(cleanupFlag, 'done');
+
+          if (navigator.serviceWorker.controller) {
+            window.location.reload();
+          }
+        } catch (_) {
+          // Keep app startup resilient if SW cleanup fails.
+        }
+      });
+    })();
+
     // Keep the visible browser/PWA title fixed to the brand name.
     (function () {
       const fixedTitle = 'Hosoon Academy';
