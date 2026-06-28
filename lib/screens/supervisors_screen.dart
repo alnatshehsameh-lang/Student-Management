@@ -68,6 +68,19 @@ class _SupervisorsScreenState extends State<SupervisorsScreen> {
     _fetchAll();
   }
 
+  String _scopeLabel(int? classId, int? groupId, int? typeId) {
+    final classLabel = classId == null
+        ? '-'
+        : (_classNames[classId] ?? classId.toString());
+    final groupLabel = groupId == null
+        ? '-'
+        : (_groupNames[groupId] ?? groupId.toString());
+    final typeLabel = typeId == null
+        ? '-'
+        : (_typeNames[typeId] ?? typeId.toString());
+    return 'حلقة: $classLabel | مجموعة: $groupLabel | رواية: $typeLabel';
+  }
+
   Future<void> _fetchAll() async {
     if (!mounted) return;
     setState(() => _loading = true);
@@ -77,12 +90,8 @@ class _SupervisorsScreenState extends State<SupervisorsScreen> {
         _client
             .from('Users')
             .select('id, username, email, Full_name, role')
-            .eq('role', 'supervisor')
             .order('username'),
-        _client
-            .from('Classes')
-            .select('id, Class_Number')
-            .order('Class_Number'),
+        _client.from('Classes').select('id, Class_Number').order('Class_Number'),
         _client.from('Groups').select('id, Group_Name').order('Group_Name'),
         _client.from('Types').select('id, Type').order('Type'),
       ]);
@@ -97,18 +106,14 @@ class _SupervisorsScreenState extends State<SupervisorsScreen> {
         ..clear()
         ..addEntries(
           _classes.map(
-            (e) => MapEntry(
-              _asInt(e['id'])!,
-              (e['Class_Number'] ?? '').toString(),
-            ),
+            (e) => MapEntry(_asInt(e['id'])!, (e['Class_Number'] ?? '').toString()),
           ),
         );
       _groupNames
         ..clear()
         ..addEntries(
           _groups.map(
-            (e) =>
-                MapEntry(_asInt(e['id'])!, (e['Group_Name'] ?? '').toString()),
+            (e) => MapEntry(_asInt(e['id'])!, (e['Group_Name'] ?? '').toString()),
           ),
         );
       _typeNames
@@ -122,7 +127,7 @@ class _SupervisorsScreenState extends State<SupervisorsScreen> {
       final managersRes = await _client
           .from('Managers')
           .select(
-            'id, person_number, full_name, country, type, line_manager, User_id, Class_id, Group_id, Type_id, Users!inner(id, username, email, Full_name, role)',
+            'id, person_number, full_name, country, type, line_manager, User_id, Class_id, Group_id, Type_id, Users!inner(id, username, email, Full_name, role), Managers_Lines(id, Group_id, Class_id, Type_id, is_active, effective_from, effective_to)',
           )
           .eq('Users.role', 'supervisor')
           .order('id');
@@ -130,6 +135,51 @@ class _SupervisorsScreenState extends State<SupervisorsScreen> {
       final rows = List<Map<String, dynamic>>.from(managersRes as List);
       _supervisors = rows.map((m) {
         final user = m['Users'] as Map<String, dynamic>?;
+
+        final linesRaw = m['Managers_Lines'];
+        final lines = <Map<String, dynamic>>[];
+        if (linesRaw is List) {
+          for (final line in List<Map<String, dynamic>>.from(linesRaw)) {
+            lines.add({
+              'id': _asInt(line['id']),
+              'Class_id': _asInt(line['Class_id']),
+              'Group_id': _asInt(line['Group_id']),
+              'Type_id': _asInt(line['Type_id']),
+              'is_active': line['is_active'] == true,
+              'effective_from': line['effective_from'],
+              'effective_to': line['effective_to'],
+            });
+          }
+        }
+
+        // Backward compatibility when legacy columns are still populated.
+        if (lines.isEmpty) {
+          final legacyClass = _asInt(m['Class_id']);
+          final legacyGroup = _asInt(m['Group_id']);
+          final legacyType = _asInt(m['Type_id']);
+          if (legacyClass != null && legacyGroup != null && legacyType != null) {
+            lines.add({
+              'id': null,
+              'Class_id': legacyClass,
+              'Group_id': legacyGroup,
+              'Type_id': legacyType,
+              'is_active': true,
+              'effective_from': null,
+              'effective_to': null,
+            });
+          }
+        }
+
+        final scopeSummary = lines
+            .map(
+              (line) => _scopeLabel(
+                line['Class_id'] as int?,
+                line['Group_id'] as int?,
+                line['Type_id'] as int?,
+              ),
+            )
+            .join('\n');
+
         return {
           'id': _asInt(m['id']),
           'person_number': _asInt(m['person_number']),
@@ -138,12 +188,12 @@ class _SupervisorsScreenState extends State<SupervisorsScreen> {
           'type': m['type'],
           'line_manager': _asInt(m['line_manager']),
           'User_id': _asInt(m['User_id']),
-          'Class_id': _asInt(m['Class_id']),
-          'Group_id': _asInt(m['Group_id']),
-          'Type_id': _asInt(m['Type_id']),
           'username': user?['username'],
           'email': user?['email'],
           'user_full_name': user?['Full_name'],
+          'lines': lines,
+          'lines_count': lines.length,
+          'lines_summary': scopeSummary,
         };
       }).toList();
     } catch (e) {
@@ -162,22 +212,30 @@ class _SupervisorsScreenState extends State<SupervisorsScreen> {
 
     int? selectedUserId = row?['User_id'] as int?;
     final fullNameController = TextEditingController(
-      text:
-          row?['full_name']?.toString() ??
-          row?['user_full_name']?.toString() ??
-          '',
+      text: row?['full_name']?.toString() ?? row?['user_full_name']?.toString() ?? '',
     );
-    final countryController = TextEditingController(
-      text: row?['country']?.toString() ?? '',
-    );
+    final countryController = TextEditingController(text: row?['country']?.toString() ?? '');
     final lineManagerController = TextEditingController(
       text: row?['line_manager']?.toString() ?? '',
     );
 
     String managerType = row?['type']?.toString() ?? 'supervisor';
-    int? selectedClassId = row?['Class_id'] as int?;
-    int? selectedGroupId = row?['Group_id'] as int?;
-    int? selectedTypeId = row?['Type_id'] as int?;
+    final initialLines = (row?['lines'] is List)
+        ? List<Map<String, dynamic>>.from(row!['lines'] as List)
+        : <Map<String, dynamic>>[];
+    final lines = initialLines.isEmpty
+        ? <Map<String, dynamic>>[
+            {
+              'id': null,
+              'Class_id': null,
+              'Group_id': null,
+              'Type_id': null,
+              'is_active': true,
+              'effective_from': null,
+              'effective_to': null,
+            },
+          ]
+        : initialLines.map((line) => Map<String, dynamic>.from(line)).toList();
 
     await showDialog<void>(
       context: context,
@@ -195,14 +253,53 @@ class _SupervisorsScreenState extends State<SupervisorsScreen> {
                 ? (selectedUser.first['Full_name']?.toString() ?? '-')
                 : '-';
 
+            void addLine() {
+              setDialogState(() {
+                lines.add({
+                  'id': null,
+                  'Class_id': null,
+                  'Group_id': null,
+                  'Type_id': null,
+                  'is_active': true,
+                  'effective_from': null,
+                  'effective_to': null,
+                });
+              });
+            }
+
+            void removeLine(int index) {
+              setDialogState(() {
+                if (lines.length == 1) {
+                  lines[0] = {
+                    'id': null,
+                    'Class_id': null,
+                    'Group_id': null,
+                    'Type_id': null,
+                    'is_active': true,
+                    'effective_from': null,
+                    'effective_to': null,
+                  };
+                  return;
+                }
+                lines.removeAt(index);
+              });
+            }
+
             return AlertDialog(
               title: Text(isEdit ? 'تعديل مشرفة' : 'إضافة مشرفة جديدة'),
               content: SizedBox(
-                width: 560,
+                width: 760,
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      const Text(
+                        'بيانات المشرفة (Header)',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                        textAlign: TextAlign.right,
+                      ),
+                      const SizedBox(height: 10),
                       SearchableLovField<int>(
                         value: selectedUserId,
                         labelText: 'اسم المستخدم (من جدول Users)',
@@ -223,13 +320,10 @@ class _SupervisorsScreenState extends State<SupervisorsScreen> {
                                   .cast<Map<String, dynamic>>()
                                   .toList();
                               if (selected.isNotEmpty) {
-                                final fromUser = selected.first['Full_name']
-                                    ?.toString();
-                                final username = selected.first['username']
-                                    ?.toString();
+                                final fromUser = selected.first['Full_name']?.toString();
+                                final username = selected.first['username']?.toString();
                                 fullNameController.text =
-                                    (fromUser != null &&
-                                        fromUser.trim().isNotEmpty)
+                                    (fromUser != null && fromUser.trim().isNotEmpty)
                                     ? fromUser
                                     : (username ?? '');
                               }
@@ -265,10 +359,7 @@ class _SupervisorsScreenState extends State<SupervisorsScreen> {
                         value: managerType,
                         labelText: 'نوع السجل في Managers',
                         items: const [
-                          SearchableLovItem(
-                            value: 'supervisor',
-                            label: 'supervisor',
-                          ),
+                          SearchableLovItem(value: 'supervisor', label: 'supervisor'),
                           SearchableLovItem(value: 'manager', label: 'manager'),
                         ],
                         onChanged: (value) {
@@ -284,72 +375,110 @@ class _SupervisorsScreenState extends State<SupervisorsScreen> {
                         ),
                         keyboardType: TextInputType.number,
                       ),
-                      const SizedBox(height: 14),
-                      SearchableLovField<int?>(
-                        value: selectedClassId,
-                        labelText: 'الحلقة (اختياري)',
-                        items: [
-                          const SearchableLovItem<int?>(
-                            value: null,
-                            label: 'غير محدد',
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'التعيينات (Lines)',
+                            style: TextStyle(fontWeight: FontWeight.w700),
                           ),
-                          ..._classes.map(
-                            (e) => SearchableLovItem<int?>(
-                              value: _asInt(e['id']),
-                              label: (e['Class_Number'] ?? '').toString(),
-                            ),
+                          TextButton.icon(
+                            onPressed: addLine,
+                            icon: const Icon(Icons.add),
+                            label: const Text('إضافة سطر'),
                           ),
                         ],
-                        onChanged: (value) =>
-                            setDialogState(() => selectedClassId = value),
                       ),
-                      const SizedBox(height: 10),
-                      SearchableLovField<int?>(
-                        value: selectedGroupId,
-                        labelText: 'المجموعة (اختياري)',
-                        items: [
-                          const SearchableLovItem<int?>(
-                            value: null,
-                            label: 'غير محدد',
-                          ),
-                          ..._groups.map(
-                            (e) => SearchableLovItem<int?>(
-                              value: _asInt(e['id']),
-                              label: (e['Group_Name'] ?? '').toString(),
+                      const SizedBox(height: 8),
+                      ...List.generate(lines.length, (index) {
+                        final line = lines[index];
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          child: Padding(
+                            padding: const EdgeInsets.all(10.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        'السطر ${index + 1}',
+                                        style: const TextStyle(fontWeight: FontWeight.w600),
+                                        textAlign: TextAlign.right,
+                                      ),
+                                    ),
+                                    IconButton(
+                                      tooltip: 'حذف السطر',
+                                      onPressed: () => removeLine(index),
+                                      icon: const Icon(Icons.delete, color: Colors.red),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                SearchableLovField<int?>(
+                                  value: line['Class_id'] as int?,
+                                  labelText: 'الحلقة',
+                                  items: [
+                                    const SearchableLovItem<int?>(value: null, label: 'اختر الحلقة'),
+                                    ..._classes.map(
+                                      (e) => SearchableLovItem<int?>(
+                                        value: _asInt(e['id']),
+                                        label: (e['Class_Number'] ?? '').toString(),
+                                      ),
+                                    ),
+                                  ],
+                                  onChanged: (value) {
+                                    setDialogState(() => line['Class_id'] = value);
+                                  },
+                                ),
+                                const SizedBox(height: 8),
+                                SearchableLovField<int?>(
+                                  value: line['Group_id'] as int?,
+                                  labelText: 'المجموعة',
+                                  items: [
+                                    const SearchableLovItem<int?>(value: null, label: 'اختر المجموعة'),
+                                    ..._groups.map(
+                                      (e) => SearchableLovItem<int?>(
+                                        value: _asInt(e['id']),
+                                        label: (e['Group_Name'] ?? '').toString(),
+                                      ),
+                                    ),
+                                  ],
+                                  onChanged: (value) {
+                                    setDialogState(() => line['Group_id'] = value);
+                                  },
+                                ),
+                                const SizedBox(height: 8),
+                                SearchableLovField<int?>(
+                                  value: line['Type_id'] as int?,
+                                  labelText: 'الرواية',
+                                  items: [
+                                    const SearchableLovItem<int?>(value: null, label: 'اختر الرواية'),
+                                    ..._types.map(
+                                      (e) => SearchableLovItem<int?>(
+                                        value: _asInt(e['id']),
+                                        label: (e['Type'] ?? '').toString(),
+                                      ),
+                                    ),
+                                  ],
+                                  onChanged: (value) {
+                                    setDialogState(() => line['Type_id'] = value);
+                                  },
+                                ),
+                              ],
                             ),
                           ),
-                        ],
-                        onChanged: (value) =>
-                            setDialogState(() => selectedGroupId = value),
-                      ),
-                      const SizedBox(height: 10),
-                      SearchableLovField<int?>(
-                        value: selectedTypeId,
-                        labelText: 'الرواية (اختياري)',
-                        items: [
-                          const SearchableLovItem<int?>(
-                            value: null,
-                            label: 'غير محدد',
-                          ),
-                          ..._types.map(
-                            (e) => SearchableLovItem<int?>(
-                              value: _asInt(e['id']),
-                              label: (e['Type'] ?? '').toString(),
-                            ),
-                          ),
-                        ],
-                        onChanged: (value) =>
-                            setDialogState(() => selectedTypeId = value),
-                      ),
+                        );
+                      }),
                     ],
                   ),
                 ),
               ),
               actions: [
                 TextButton(
-                  onPressed: _saving
-                      ? null
-                      : () => Navigator.pop(dialogContext),
+                  onPressed: _saving ? null : () => Navigator.pop(dialogContext),
                   child: const Text('إلغاء'),
                 ),
                 ElevatedButton(
@@ -363,68 +492,106 @@ class _SupervisorsScreenState extends State<SupervisorsScreen> {
                           );
 
                           if (selectedUserId == null) {
-                            ScaffoldMessenger.of(
-                              dialogInnerContext,
-                            ).showSnackBar(
+                            ScaffoldMessenger.of(dialogInnerContext).showSnackBar(
                               const SnackBar(
-                                content: Text(
-                                  'يرجى اختيار اسم المستخدم من جدول Users',
-                                ),
+                                content: Text('يرجى اختيار اسم المستخدم من جدول Users'),
                               ),
                             );
                             return;
                           }
 
                           if (fullName.isEmpty) {
-                            ScaffoldMessenger.of(
-                              dialogInnerContext,
-                            ).showSnackBar(
-                              const SnackBar(
-                                content: Text('الاسم الكامل مطلوب'),
-                              ),
+                            ScaffoldMessenger.of(dialogInnerContext).showSnackBar(
+                              const SnackBar(content: Text('الاسم الكامل مطلوب')),
                             );
                             return;
+                          }
+
+                          if (lines.isEmpty) {
+                            ScaffoldMessenger.of(dialogInnerContext).showSnackBar(
+                              const SnackBar(content: Text('يجب إضافة سطر تعيين واحد على الأقل')),
+                            );
+                            return;
+                          }
+
+                          final normalizedLines = <Map<String, int>>[];
+                          final uniqueness = <String>{};
+                          for (var i = 0; i < lines.length; i++) {
+                            final classId = _asInt(lines[i]['Class_id']);
+                            final groupId = _asInt(lines[i]['Group_id']);
+                            final typeId = _asInt(lines[i]['Type_id']);
+                            if (classId == null || groupId == null || typeId == null) {
+                              ScaffoldMessenger.of(dialogInnerContext).showSnackBar(
+                                SnackBar(content: Text('يرجى استكمال بيانات السطر ${i + 1}')),
+                              );
+                              return;
+                            }
+                            final key = '$classId|$groupId|$typeId';
+                            if (uniqueness.contains(key)) {
+                              ScaffoldMessenger.of(dialogInnerContext).showSnackBar(
+                                const SnackBar(content: Text('لا يمكن تكرار نفس الحلقة/المجموعة/الرواية')),
+                              );
+                              return;
+                            }
+                            uniqueness.add(key);
+                            normalizedLines.add({
+                              'Class_id': classId,
+                              'Group_id': groupId,
+                              'Type_id': typeId,
+                            });
                           }
 
                           setState(() => _saving = true);
 
                           try {
+                            int managerId;
+                            final managerPayload = {
+                              'User_id': selectedUserId,
+                              'full_name': fullName,
+                              'country': country.isEmpty ? null : country,
+                              'type': managerType,
+                              'line_manager': lineManager,
+                            };
+
                             if (!isEdit) {
-                              await _client.from('Managers').insert({
-                                'User_id': selectedUserId,
-                                'full_name': fullName,
-                                'country': country.isEmpty ? null : country,
-                                'type': managerType,
-                                'line_manager': lineManager,
-                                'Class_id': selectedClassId,
-                                'Group_id': selectedGroupId,
-                                'Type_id': selectedTypeId,
-                              });
+                              final inserted = await _client
+                                  .from('Managers')
+                                  .insert(managerPayload)
+                                  .select('id')
+                                  .single();
+                              managerId = _asInt(inserted['id'])!;
                             } else {
-                              final managerId = row['id'] as int;
+                              managerId = row['id'] as int;
                               await _client
                                   .from('Managers')
-                                  .update({
-                                    'User_id': selectedUserId,
-                                    'full_name': fullName,
-                                    'country': country.isEmpty ? null : country,
-                                    'type': managerType,
-                                    'line_manager': lineManager,
-                                    'Class_id': selectedClassId,
-                                    'Group_id': selectedGroupId,
-                                    'Type_id': selectedTypeId,
-                                  })
+                                  .update(managerPayload)
                                   .eq('id', managerId);
                             }
+
+                            await _client
+                                .from('Managers_Lines')
+                                .delete()
+                                .eq('manager_id', managerId);
+
+                            final linePayload = normalizedLines
+                                .map(
+                                  (line) => {
+                                    'manager_id': managerId,
+                                    'Class_id': line['Class_id'],
+                                    'Group_id': line['Group_id'],
+                                    'Type_id': line['Type_id'],
+                                    'is_active': true,
+                                  },
+                                )
+                                .toList();
+                            await _client.from('Managers_Lines').insert(linePayload);
 
                             if (mounted) {
                               Navigator.pop(dialogContext);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(
-                                    isEdit
-                                        ? 'تم تحديث بيانات المشرفة'
-                                        : 'تمت إضافة المشرفة',
+                                    isEdit ? 'تم تحديث بيانات المشرفة' : 'تمت إضافة المشرفة',
                                   ),
                                 ),
                               );
@@ -434,9 +601,7 @@ class _SupervisorsScreenState extends State<SupervisorsScreen> {
                           } catch (e) {
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('تعذر حفظ بيانات المشرفة: $e'),
-                                ),
+                                SnackBar(content: Text('تعذر حفظ بيانات المشرفة: $e')),
                               );
                             }
                           } finally {
@@ -487,9 +652,9 @@ class _SupervisorsScreenState extends State<SupervisorsScreen> {
       await _fetchAll();
 
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('تم حذف المشرفة بنجاح')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم حذف المشرفة بنجاح')),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -542,9 +707,7 @@ class _SupervisorsScreenState extends State<SupervisorsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         ElevatedButton.icon(
-                          onPressed: _saving
-                              ? null
-                              : () => _showSupervisorDialog(),
+                          onPressed: _saving ? null : () => _showSupervisorDialog(),
                           icon: const Icon(Icons.person_add),
                           label: const Text('إضافة مشرفة'),
                         ),
@@ -559,9 +722,7 @@ class _SupervisorsScreenState extends State<SupervisorsScreen> {
                     Row(
                       children: [
                         ElevatedButton.icon(
-                          onPressed: _saving
-                              ? null
-                              : () => _showSupervisorDialog(),
+                          onPressed: _saving ? null : () => _showSupervisorDialog(),
                           icon: const Icon(Icons.person_add),
                           label: const Text('إضافة مشرفة'),
                         ),
@@ -594,71 +755,32 @@ class _SupervisorsScreenState extends State<SupervisorsScreen> {
                                   DataColumn(label: Text('الدولة')),
                                   DataColumn(label: Text('النوع')),
                                   DataColumn(label: Text('Line Manager')),
-                                  DataColumn(label: Text('الحلقة')),
-                                  DataColumn(label: Text('المجموعة')),
-                                  DataColumn(label: Text('الرواية')),
+                                  DataColumn(label: Text('عدد السطور')),
+                                  DataColumn(label: Text('التعيينات')),
                                   DataColumn(label: Text('الإجراءات')),
                                 ],
                                 rows: _supervisors.map((row) {
-                                  final classId = row['Class_id'] as int?;
-                                  final groupId = row['Group_id'] as int?;
-                                  final typeId = row['Type_id'] as int?;
+                                  final linesCount = row['lines_count'] as int? ?? 0;
+                                  final linesSummary = row['lines_summary']?.toString() ?? '-';
 
                                   return DataRow(
                                     cells: [
+                                      DataCell(Text(row['person_number']?.toString() ?? '-')),
+                                      DataCell(Text(row['full_name']?.toString() ?? '-')),
+                                      DataCell(Text(row['username']?.toString() ?? '-')),
+                                      DataCell(Text(row['email']?.toString() ?? '-')),
+                                      DataCell(Text(row['country']?.toString() ?? '-')),
+                                      DataCell(Text(row['type']?.toString() ?? '-')),
+                                      DataCell(Text(row['line_manager']?.toString() ?? '-')),
+                                      DataCell(Text(linesCount.toString())),
                                       DataCell(
-                                        Text(
-                                          row['person_number']?.toString() ??
-                                              '-',
-                                        ),
-                                      ),
-                                      DataCell(
-                                        Text(
-                                          row['full_name']?.toString() ?? '-',
-                                        ),
-                                      ),
-                                      DataCell(
-                                        Text(
-                                          row['username']?.toString() ?? '-',
-                                        ),
-                                      ),
-                                      DataCell(
-                                        Text(row['email']?.toString() ?? '-'),
-                                      ),
-                                      DataCell(
-                                        Text(row['country']?.toString() ?? '-'),
-                                      ),
-                                      DataCell(
-                                        Text(row['type']?.toString() ?? '-'),
-                                      ),
-                                      DataCell(
-                                        Text(
-                                          row['line_manager']?.toString() ??
-                                              '-',
-                                        ),
-                                      ),
-                                      DataCell(
-                                        Text(
-                                          classId != null
-                                              ? (_classNames[classId] ??
-                                                    classId.toString())
-                                              : '-',
-                                        ),
-                                      ),
-                                      DataCell(
-                                        Text(
-                                          groupId != null
-                                              ? (_groupNames[groupId] ??
-                                                    groupId.toString())
-                                              : '-',
-                                        ),
-                                      ),
-                                      DataCell(
-                                        Text(
-                                          typeId != null
-                                              ? (_typeNames[typeId] ??
-                                                    typeId.toString())
-                                              : '-',
+                                        ConstrainedBox(
+                                          constraints: const BoxConstraints(maxWidth: 320),
+                                          child: Text(
+                                            linesSummary.isEmpty ? '-' : linesSummary,
+                                            maxLines: 4,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
                                         ),
                                       ),
                                       DataCell(
@@ -670,44 +792,29 @@ class _SupervisorsScreenState extends State<SupervisorsScreen> {
                                             children: [
                                               IconButton(
                                                 tooltip: 'تعديل',
-                                                visualDensity:
-                                                    VisualDensity.compact,
-                                                constraints:
-                                                    const BoxConstraints(
-                                                      minWidth: 36,
-                                                      minHeight: 36,
-                                                    ),
+                                                visualDensity: VisualDensity.compact,
+                                                constraints: const BoxConstraints(
+                                                  minWidth: 36,
+                                                  minHeight: 36,
+                                                ),
                                                 padding: EdgeInsets.zero,
                                                 onPressed: _saving
                                                     ? null
-                                                    : () =>
-                                                          _showSupervisorDialog(
-                                                            row: row,
-                                                          ),
-                                                icon: const Icon(
-                                                  Icons.edit,
-                                                  color: Colors.blue,
-                                                ),
+                                                    : () => _showSupervisorDialog(row: row),
+                                                icon: const Icon(Icons.edit, color: Colors.blue),
                                               ),
                                               IconButton(
                                                 tooltip: 'حذف',
-                                                visualDensity:
-                                                    VisualDensity.compact,
-                                                constraints:
-                                                    const BoxConstraints(
-                                                      minWidth: 36,
-                                                      minHeight: 36,
-                                                    ),
+                                                visualDensity: VisualDensity.compact,
+                                                constraints: const BoxConstraints(
+                                                  minWidth: 36,
+                                                  minHeight: 36,
+                                                ),
                                                 padding: EdgeInsets.zero,
                                                 onPressed: _saving
                                                     ? null
-                                                    : () => _deleteSupervisor(
-                                                          row,
-                                                        ),
-                                                icon: const Icon(
-                                                  Icons.delete,
-                                                  color: Colors.red,
-                                                ),
+                                                    : () => _deleteSupervisor(row),
+                                                icon: const Icon(Icons.delete, color: Colors.red),
                                               ),
                                             ],
                                           ),
