@@ -1803,12 +1803,26 @@ class _GroupsScreenState extends State<GroupsScreen> {
                                             label: const Text('تدبر'),
                                             selected:
                                                 _activeReportTab == 'tadabur',
-                                            onSelected: (v) {
+                                            onSelected: (v) async {
                                               if (v) {
                                                 setState(
                                                   () => _activeReportTab =
                                                       'tadabur',
                                                 );
+                                                final groupId = int.tryParse(
+                                                  _selectedGroupId
+                                                          ?.toString() ??
+                                                      '',
+                                                );
+                                                if (groupId != null &&
+                                                    _selectedTypeId != null &&
+                                                    _selectedClassId != null) {
+                                                  await _fetchStudentsForGroupTypeClass(
+                                                    groupId,
+                                                    _selectedTypeId,
+                                                    _selectedClassId,
+                                                  );
+                                                }
                                               }
                                             },
                                           ),
@@ -1817,12 +1831,26 @@ class _GroupsScreenState extends State<GroupsScreen> {
                                             label: const Text('سرد'),
                                             selected:
                                                 _activeReportTab == 'sard',
-                                            onSelected: (v) {
+                                            onSelected: (v) async {
                                               if (v) {
                                                 setState(
                                                   () =>
                                                       _activeReportTab = 'sard',
                                                 );
+                                                final groupId = int.tryParse(
+                                                  _selectedGroupId
+                                                          ?.toString() ??
+                                                      '',
+                                                );
+                                                if (groupId != null &&
+                                                    _selectedTypeId != null &&
+                                                    _selectedClassId != null) {
+                                                  await _fetchStudentsForGroupTypeClass(
+                                                    groupId,
+                                                    _selectedTypeId,
+                                                    _selectedClassId,
+                                                  );
+                                                }
                                               }
                                             },
                                           ),

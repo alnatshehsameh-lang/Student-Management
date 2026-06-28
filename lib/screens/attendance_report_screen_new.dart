@@ -229,13 +229,14 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
       final overrideRes = await _client
           .from('Student_Attendance_Overrides')
           .select(
-            'Student_id, Attendance_Mode, effective_from, effective_to, is_active',
+            'Student_id, Attendance_Mode, effective_from, effective_to, is_active, created_at',
           )
           .eq('Attend_Class_id', _selectedClassId)
           .eq('Attend_Group_id', _selectedGroupId)
           .eq('Attend_Type_id', _selectedTypeId)
           .eq('is_active', true)
-          .in_('Attendance_Mode', ['sard', 'tadabur', 'both']);
+          .in_('Attendance_Mode', ['sard', 'tadabur', 'both'])
+          .order('created_at', ascending: false);
 
       bool overlapsRange(Map<String, dynamic> row) {
         final fromRaw = row['effective_from'];
@@ -254,12 +255,17 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
       }
 
       final overrideStudentIds = <dynamic>{};
+      final overrideModeByStudentId = <dynamic, String>{};
       if (overrideRes is List) {
         for (final row in List<Map<String, dynamic>>.from(overrideRes)) {
           if (!overlapsRange(row)) continue;
           final sid = row['Student_id'];
           if (sid != null) {
             overrideStudentIds.add(sid);
+            overrideModeByStudentId.putIfAbsent(
+              sid,
+              () => (row['Attendance_Mode'] ?? '').toString().toLowerCase(),
+            );
           }
         }
       }
@@ -333,6 +339,15 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
             student['Type_id'] == _selectedTypeId;
       }
 
+      bool allowsMode(dynamic studentId, String mode) {
+        final overrideMode = overrideModeByStudentId[studentId];
+        if (overrideMode == null || overrideMode.isEmpty) {
+          return true;
+        }
+        if (overrideMode == 'both') return true;
+        return overrideMode == mode;
+      }
+
       final combined = <Map<String, dynamic>>[];
 
       // Fetch Tadabur attendance
@@ -346,6 +361,7 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
       if (tadaburRes is List) {
         for (final record in List<Map<String, dynamic>>.from(tadaburRes)) {
           final studentId = record['Student_id'];
+          if (!allowsMode(studentId, 'tadabur')) continue;
           if (studentMap.containsKey(studentId)) {
             final student = studentMap[studentId]!;
             if (!recordMatchesContext(record, student)) continue;
@@ -369,6 +385,7 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
       if (sardRes is List) {
         for (final record in List<Map<String, dynamic>>.from(sardRes)) {
           final studentId = record['Student_id'];
+          if (!allowsMode(studentId, 'sard')) continue;
           if (studentMap.containsKey(studentId)) {
             final student = studentMap[studentId]!;
             if (!recordMatchesContext(record, student)) continue;
