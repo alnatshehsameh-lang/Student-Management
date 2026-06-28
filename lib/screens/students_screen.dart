@@ -748,6 +748,35 @@ class _StudentsScreenState extends State<StudentsScreen> {
     List<Map<String, dynamic>> overrides = [];
     bool didAutoSelectExistingOverride = false;
 
+    void applyOverride(Map<String, dynamic>? o, StateSetter setDialogState) {
+      setDialogState(() {
+        if (o == null) {
+          selectedOverrideId = null;
+          selectedMode = 'sard';
+          selectedClassId = null;
+          selectedGroupId = null;
+          selectedTypeId = null;
+          effectiveFrom = null;
+          effectiveTo = null;
+          isActive = true;
+          reasonController.clear();
+          notesController.clear();
+          return;
+        }
+
+        selectedOverrideId = (o['id'] as num?)?.toInt();
+        selectedMode = (o['Attendance_Mode'] ?? 'sard').toString();
+        selectedClassId = o['Attend_Class_id'];
+        selectedGroupId = o['Attend_Group_id'];
+        selectedTypeId = o['Attend_Type_id'];
+        effectiveFrom = _parseDateOnly(o['effective_from']);
+        effectiveTo = _parseDateOnly(o['effective_to']);
+        isActive = o['is_active'] == true;
+        reasonController.text = (o['reason'] ?? '').toString();
+        notesController.text = (o['notes'] ?? '').toString();
+      });
+    }
+
     Future<void> loadOverrides(StateSetter setDialogState) async {
       setDialogState(() => loadingOverrides = true);
       try {
@@ -787,35 +816,6 @@ class _StudentsScreenState extends State<StudentsScreen> {
       } finally {
         setDialogState(() => loadingOverrides = false);
       }
-    }
-
-    void applyOverride(Map<String, dynamic>? o, StateSetter setDialogState) {
-      setDialogState(() {
-        if (o == null) {
-          selectedOverrideId = null;
-          selectedMode = 'sard';
-          selectedClassId = null;
-          selectedGroupId = null;
-          selectedTypeId = null;
-          effectiveFrom = null;
-          effectiveTo = null;
-          isActive = true;
-          reasonController.clear();
-          notesController.clear();
-          return;
-        }
-
-        selectedOverrideId = (o['id'] as num?)?.toInt();
-        selectedMode = (o['Attendance_Mode'] ?? 'sard').toString();
-        selectedClassId = o['Attend_Class_id'];
-        selectedGroupId = o['Attend_Group_id'];
-        selectedTypeId = o['Attend_Type_id'];
-        effectiveFrom = _parseDateOnly(o['effective_from']);
-        effectiveTo = _parseDateOnly(o['effective_to']);
-        isActive = o['is_active'] == true;
-        reasonController.text = (o['reason'] ?? '').toString();
-        notesController.text = (o['notes'] ?? '').toString();
-      });
     }
 
     await showDialog<void>(
