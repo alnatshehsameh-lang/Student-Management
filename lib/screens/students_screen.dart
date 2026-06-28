@@ -746,6 +746,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
     bool loadingOverrides = true;
     bool saving = false;
     List<Map<String, dynamic>> overrides = [];
+    bool didAutoSelectExistingOverride = false;
 
     Future<void> loadOverrides(StateSetter setDialogState) async {
       setDialogState(() => loadingOverrides = true);
@@ -761,6 +762,22 @@ class _StudentsScreenState extends State<StudentsScreen> {
         overrides = (res is List)
             ? List<Map<String, dynamic>>.from(res)
             : <Map<String, dynamic>>[];
+
+        if (!didAutoSelectExistingOverride && overrides.isNotEmpty) {
+          final activeOverride = overrides.where((o) => o['is_active'] == true);
+          final defaultOverride = activeOverride.isNotEmpty
+              ? activeOverride.first
+              : overrides.first;
+          applyOverride(defaultOverride, setDialogState);
+          didAutoSelectExistingOverride = true;
+        } else if (selectedOverrideId != null) {
+          final selected = overrides.where(
+            (o) => (o['id'] as num?)?.toInt() == selectedOverrideId,
+          );
+          if (selected.isNotEmpty) {
+            applyOverride(selected.first, setDialogState);
+          }
+        }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -893,11 +910,12 @@ class _StudentsScreenState extends State<StudentsScreen> {
 
                 if (selectedOverrideId == null) {
                   payload['Created_By_User_id'] = widget.userSession?.userId;
-                  await _client
+                  final inserted = await _client
                       .from('Student_Attendance_Overrides')
                       .insert(payload)
                       .select()
                       .single();
+                  selectedOverrideId = (inserted['id'] as num?)?.toInt();
                 } else {
                   await _client
                       .from('Student_Attendance_Overrides')
