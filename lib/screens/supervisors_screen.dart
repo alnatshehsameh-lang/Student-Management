@@ -127,7 +127,7 @@ class _SupervisorsScreenState extends State<SupervisorsScreen> {
       final managersRes = await _client
           .from('Managers')
           .select(
-            'id, person_number, full_name, country, type, line_manager, User_id, Class_id, Group_id, Type_id, Users!inner(id, username, email, Full_name, role), Managers_Lines(id, Group_id, Class_id, Type_id, is_active, effective_from, effective_to)',
+            'id, person_number, full_name, country, type, line_manager, User_id, Users!inner(id, username, email, Full_name, role), Managers_Lines(id, Group_id, Class_id, Type_id, is_active, effective_from, effective_to)',
           )
           .eq('Users.role', 'supervisor')
           .order('id');
@@ -148,24 +148,6 @@ class _SupervisorsScreenState extends State<SupervisorsScreen> {
               'is_active': line['is_active'] == true,
               'effective_from': line['effective_from'],
               'effective_to': line['effective_to'],
-            });
-          }
-        }
-
-        // Backward compatibility when legacy columns are still populated.
-        if (lines.isEmpty) {
-          final legacyClass = _asInt(m['Class_id']);
-          final legacyGroup = _asInt(m['Group_id']);
-          final legacyType = _asInt(m['Type_id']);
-          if (legacyClass != null && legacyGroup != null && legacyType != null) {
-            lines.add({
-              'id': null,
-              'Class_id': legacyClass,
-              'Group_id': legacyGroup,
-              'Type_id': legacyType,
-              'is_active': true,
-              'effective_from': null,
-              'effective_to': null,
             });
           }
         }
@@ -554,12 +536,45 @@ class _SupervisorsScreenState extends State<SupervisorsScreen> {
                             };
 
                             if (!isEdit) {
-                              final inserted = await _client
+                              final existingByUser = await _client
                                   .from('Managers')
-                                  .insert(managerPayload)
                                   .select('id')
-                                  .single();
-                              managerId = _asInt(inserted['id'])!;
+                                  .eq('User_id', selectedUserId!)
+                                  .maybeSingle();
+
+                              if (existingByUser != null) {
+                                managerId = _asInt(existingByUser['id'])!;
+                                await _client
+                                    .from('Managers')
+                                    .update(managerPayload)
+                                    .eq('id', managerId);
+                              } else {
+                                try {
+                                  final inserted = await _client
+                                      .from('Managers')
+                                      .insert(managerPayload)
+                                      .select('id')
+                                      .single();
+                                  managerId = _asInt(inserted['id'])!;
+                                } on PostgrestException catch (e) {
+                                  if (e.code == '23505' &&
+                                      e.message.contains('MANAGERS_full_name_key')) {
+                                    final existingByName = await _client
+                                        .from('Managers')
+                                        .select('id')
+                                        .eq('full_name', fullName)
+                                        .maybeSingle();
+                                    if (existingByName == null) rethrow;
+                                    managerId = _asInt(existingByName['id'])!;
+                                    await _client
+                                        .from('Managers')
+                                        .update(managerPayload)
+                                        .eq('id', managerId);
+                                  } else {
+                                    rethrow;
+                                  }
+                                }
+                              }
                             } else {
                               managerId = row['id'] as int;
                               await _client
