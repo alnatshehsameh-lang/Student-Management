@@ -1247,8 +1247,10 @@ class _GroupsScreenState extends State<GroupsScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchUserRestrictions();
-    _fetchGroups();
+    Future(() async {
+      await _fetchUserRestrictions();
+      await _fetchGroups();
+    });
   }
 
   Future<void> _fetchUserRestrictions() async {
@@ -1257,15 +1259,78 @@ class _GroupsScreenState extends State<GroupsScreen> {
       return;
     }
 
+    final sessionAssignments = widget.userSession.managerAssignments;
+    if (sessionAssignments.isNotEmpty) {
+      final classIds = sessionAssignments
+          .map((r) => r['Class_id'])
+          .whereType<int>()
+          .toSet();
+      final groupIds = sessionAssignments
+          .map((r) => r['Group_id'])
+          .whereType<int>()
+          .toSet();
+      final typeIds = sessionAssignments
+          .map((r) => r['Type_id'])
+          .whereType<int>()
+          .toSet();
+
+      setState(() {
+        _managerAssignments = List<Map<String, dynamic>>.from(sessionAssignments);
+        _allowedClassIds
+          ..clear()
+          ..addAll(classIds);
+        _allowedGroupIds
+          ..clear()
+          ..addAll(groupIds);
+        _allowedTypeIds
+          ..clear()
+          ..addAll(typeIds);
+        _userClassId = classIds.length == 1 ? classIds.first : null;
+        _userGroupId = groupIds.length == 1 ? groupIds.first : null;
+        _userTypeId = typeIds.length == 1 ? typeIds.first : null;
+      });
+      return;
+    }
+
     try {
       final response = await _client
           .from('Managers')
-          .select('Class_id, Group_id, Type_id')
+          .select(
+            'id, Managers_Lines(Class_id, Group_id, Type_id, is_active, effective_from, effective_to)',
+          )
           .eq('User_id', widget.userSession.userId!)
           .order('id');
 
       if (response is List && response.isNotEmpty) {
-        final rows = List<Map<String, dynamic>>.from(response);
+        final now = DateTime.now();
+        final rows = <Map<String, dynamic>>[];
+        for (final managerRow in List<Map<String, dynamic>>.from(response)) {
+          final linesRaw = managerRow['Managers_Lines'];
+          if (linesRaw is! List) continue;
+          for (final line in List<Map<String, dynamic>>.from(linesRaw)) {
+            final isActive = line['is_active'] == true;
+            if (!isActive) continue;
+
+            final fromRaw = line['effective_from'];
+            final toRaw = line['effective_to'];
+            final fromDate = fromRaw == null
+                ? null
+                : DateTime.tryParse(fromRaw.toString());
+            final toDate = toRaw == null
+                ? null
+                : DateTime.tryParse(toRaw.toString());
+
+            if (fromDate != null && fromDate.isAfter(now)) continue;
+            if (toDate != null && toDate.isBefore(now)) continue;
+
+            rows.add({
+              'Class_id': line['Class_id'],
+              'Group_id': line['Group_id'],
+              'Type_id': line['Type_id'],
+            });
+          }
+        }
+
         final classIds = rows
             .map((r) => r['Class_id'])
             .whereType<int>()
@@ -1295,6 +1360,16 @@ class _GroupsScreenState extends State<GroupsScreen> {
           _userClassId = classIds.length == 1 ? classIds.first : null;
           _userGroupId = groupIds.length == 1 ? groupIds.first : null;
           _userTypeId = typeIds.length == 1 ? typeIds.first : null;
+        });
+      } else {
+        setState(() {
+          _managerAssignments = [];
+          _allowedClassIds.clear();
+          _allowedGroupIds.clear();
+          _allowedTypeIds.clear();
+          _userClassId = null;
+          _userGroupId = null;
+          _userTypeId = null;
         });
       }
     } catch (e) {
@@ -1337,6 +1412,9 @@ class _GroupsScreenState extends State<GroupsScreen> {
           builder = builder.in_('id', _allowedGroupIds.toList());
         } else if (_userGroupId != null) {
           builder = builder.eq('id', _userGroupId!);
+        } else {
+          // Deny all when supervisor has no allowed group assignment.
+          builder = builder.eq('id', -1);
         }
       }
       const pageSize = 1000;
@@ -2399,12 +2477,17 @@ class _GroupsScreenState extends State<GroupsScreen> {
               .toList();
           if (allowedTypeIds.isNotEmpty) {
             builder = builder.in_('Type_id', allowedTypeIds);
+          } else {
+            // Group-only assignment: all types in this group are allowed.
           }
         } else {
           if (_allowedTypeIds.isNotEmpty) {
             builder = builder.in_('Type_id', _allowedTypeIds.toList());
           } else if (_userTypeId != null) {
             builder = builder.eq('Type_id', _userTypeId!);
+          } else {
+            // No assignment matched this group.
+            builder = builder.eq('Type_id', -1);
           }
         }
       }
@@ -2489,11 +2572,15 @@ class _GroupsScreenState extends State<GroupsScreen> {
               .toList();
           if (allowedClassIds.isNotEmpty) {
             builder = builder.in_('Class_id', allowedClassIds);
+          } else {
+            // Group+type assignment without class restriction: all classes are allowed.
           }
         } else if (_allowedClassIds.isNotEmpty) {
           builder = builder.in_('Class_id', _allowedClassIds.toList());
         } else if (_userClassId != null) {
           builder = builder.eq('Class_id', _userClassId!);
+        } else {
+          builder = builder.eq('Class_id', -1);
         }
       }
       final seen = <String, String>{};
@@ -2604,22 +2691,30 @@ class _GroupsScreenState extends State<GroupsScreen> {
               .toList();
           if (allowedClassIds.isNotEmpty) {
             builder = builder.in_('Class_id', allowedClassIds);
+          } else {
+            // Group+type assignment without class restriction: all classes are allowed.
           }
         } else {
           if (_allowedClassIds.isNotEmpty) {
             builder = builder.in_('Class_id', _allowedClassIds.toList());
           } else if (_userClassId != null) {
             builder = builder.eq('Class_id', _userClassId!);
+          } else {
+            builder = builder.eq('Class_id', -1);
           }
           if (_allowedGroupIds.isNotEmpty) {
             builder = builder.in_('Group_id', _allowedGroupIds.toList());
           } else if (_userGroupId != null) {
             builder = builder.eq('Group_id', _userGroupId!);
+          } else {
+            builder = builder.eq('Group_id', -1);
           }
           if (_allowedTypeIds.isNotEmpty) {
             builder = builder.in_('Type_id', _allowedTypeIds.toList());
           } else if (_userTypeId != null) {
             builder = builder.eq('Type_id', _userTypeId!);
+          } else {
+            builder = builder.eq('Type_id', -1);
           }
         }
       }
@@ -2892,6 +2987,21 @@ class _GroupsScreenState extends State<GroupsScreen> {
       final selectedGroupIdInt = int.tryParse(_selectedGroupId?.toString() ?? '');
       final selectedTypeIdInt = int.tryParse(_selectedTypeId?.toString() ?? '');
       final selectedClassIdInt = int.tryParse(_selectedClassId?.toString() ?? '');
+
+      if (!widget.userSession.canAccessScope(
+        groupId: selectedGroupIdInt,
+        typeId: selectedTypeIdInt,
+        classId: selectedClassIdInt,
+      )) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('غير مصرح لك بحفظ الحضور لهذا الاختيار'),
+            ),
+          );
+        }
+        return;
+      }
 
       final scoped = _scopedAssignments(
         groupId: selectedGroupIdInt,
