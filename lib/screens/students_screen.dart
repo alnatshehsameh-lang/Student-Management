@@ -73,9 +73,14 @@ class _StudentsScreenState extends State<StudentsScreen> {
   int? _userClassId;
   int? _userGroupId;
   int? _userTypeId;
-  final Set<int> _allowedClassIds = <int>{};
-  final Set<int> _allowedGroupIds = <int>{};
-  final Set<int> _allowedTypeIds = <int>{};
+  List<Map<String, dynamic>> _managerAssignments = [];
+
+  int? _asInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value.toString());
+  }
 
   @override
   void initState() {
@@ -94,21 +99,32 @@ class _StudentsScreenState extends State<StudentsScreen> {
       return;
     }
 
-    final userId = widget.userSession!.userId;
+    final sessionAssignments = widget.userSession!.managerAssignments;
+    if (sessionAssignments.isNotEmpty) {
+      final classIds = sessionAssignments
+          .map((e) => _asInt(e['Class_id']))
+          .whereType<int>()
+          .toSet();
+      final groupIds = sessionAssignments
+          .map((e) => _asInt(e['Group_id']))
+          .whereType<int>()
+          .toSet();
+      final typeIds = sessionAssignments
+          .map((e) => _asInt(e['Type_id']))
+          .whereType<int>()
+          .toSet();
 
-    // Keep session values as fallback.
-    int? resolvedClassId = widget.userSession!.assignedClassId;
-    int? resolvedGroupId = widget.userSession!.assignedGroupId;
-    int? resolvedTypeId = widget.userSession!.assignedTypeId;
-    final allowedClassIds = <int>{};
-    final allowedGroupIds = <int>{};
-    final allowedTypeIds = <int>{};
-
-    int? asInt(dynamic v) {
-      if (v is int) return v;
-      if (v == null) return null;
-      return int.tryParse(v.toString());
+      if (!mounted) return;
+      setState(() {
+        _managerAssignments = List<Map<String, dynamic>>.from(sessionAssignments);
+        _userClassId = classIds.length == 1 ? classIds.first : null;
+        _userGroupId = groupIds.length == 1 ? groupIds.first : null;
+        _userTypeId = typeIds.length == 1 ? typeIds.first : null;
+      });
+      return;
     }
+
+    final userId = widget.userSession!.userId;
 
     if (userId != null) {
       try {
@@ -119,21 +135,27 @@ class _StudentsScreenState extends State<StudentsScreen> {
             .order('id');
 
         if (response is List && response.isNotEmpty) {
+          final assignments = List<Map<String, dynamic>>.from(response);
+          final classIds = <int>{};
+          final groupIds = <int>{};
+          final typeIds = <int>{};
           for (final row in List<Map<String, dynamic>>.from(response)) {
-            final classId = asInt(row['Class_id']);
-            final groupId = asInt(row['Group_id']);
-            final typeId = asInt(row['Type_id']);
-            if (classId != null) allowedClassIds.add(classId);
-            if (groupId != null) allowedGroupIds.add(groupId);
-            if (typeId != null) allowedTypeIds.add(typeId);
+            final classId = _asInt(row['Class_id']);
+            final groupId = _asInt(row['Group_id']);
+            final typeId = _asInt(row['Type_id']);
+            if (classId != null) classIds.add(classId);
+            if (groupId != null) groupIds.add(groupId);
+            if (typeId != null) typeIds.add(typeId);
           }
 
-          resolvedClassId =
-              allowedClassIds.length == 1 ? allowedClassIds.first : null;
-          resolvedGroupId =
-              allowedGroupIds.length == 1 ? allowedGroupIds.first : null;
-          resolvedTypeId =
-              allowedTypeIds.length == 1 ? allowedTypeIds.first : null;
+          if (!mounted) return;
+          setState(() {
+            _managerAssignments = assignments;
+            _userClassId = classIds.length == 1 ? classIds.first : null;
+            _userGroupId = groupIds.length == 1 ? groupIds.first : null;
+            _userTypeId = typeIds.length == 1 ? typeIds.first : null;
+          });
+          return;
         }
       } catch (e) {
         debugPrint('Failed to fetch user restrictions from Managers: $e');
@@ -142,18 +164,16 @@ class _StudentsScreenState extends State<StudentsScreen> {
 
     if (!mounted) return;
     setState(() {
-      _userClassId = resolvedClassId;
-      _userGroupId = resolvedGroupId;
-      _userTypeId = resolvedTypeId;
-      _allowedClassIds
-        ..clear()
-        ..addAll(allowedClassIds);
-      _allowedGroupIds
-        ..clear()
-        ..addAll(allowedGroupIds);
-      _allowedTypeIds
-        ..clear()
-        ..addAll(allowedTypeIds);
+      _userClassId = widget.userSession!.assignedClassId;
+      _userGroupId = widget.userSession!.assignedGroupId;
+      _userTypeId = widget.userSession!.assignedTypeId;
+      _managerAssignments = [
+        {
+          'Class_id': widget.userSession!.assignedClassId,
+          'Group_id': widget.userSession!.assignedGroupId,
+          'Type_id': widget.userSession!.assignedTypeId,
+        },
+      ];
     });
   }
 
@@ -438,22 +458,31 @@ class _StudentsScreenState extends State<StudentsScreen> {
       return query;
     }
 
-    if (_allowedClassIds.isNotEmpty) {
-      query = query.in_('"Class_id"', _allowedClassIds.toList());
-    } else if (_userClassId != null) {
-      query = query.eq('"Class_id"', _userClassId);
+    final assignments = _managerAssignments.isNotEmpty
+        ? _managerAssignments
+        : [
+            {
+              'Class_id': _userClassId,
+              'Group_id': _userGroupId,
+              'Type_id': _userTypeId,
+            },
+          ];
+
+    final clauses = <String>[];
+    for (final assignment in assignments) {
+      final parts = <String>[];
+      final classId = _asInt(assignment['Class_id']);
+      final groupId = _asInt(assignment['Group_id']);
+      final typeId = _asInt(assignment['Type_id']);
+      if (classId != null) parts.add('Class_id.eq.$classId');
+      if (groupId != null) parts.add('Group_id.eq.$groupId');
+      if (typeId != null) parts.add('Type_id.eq.$typeId');
+      if (parts.isEmpty) continue;
+      clauses.add(parts.length == 1 ? parts.first : 'and(${parts.join(',')})');
     }
 
-    if (_allowedGroupIds.isNotEmpty) {
-      query = query.in_('"Group_id"', _allowedGroupIds.toList());
-    } else if (_userGroupId != null) {
-      query = query.eq('"Group_id"', _userGroupId);
-    }
-
-    if (_allowedTypeIds.isNotEmpty) {
-      query = query.in_('"Type_id"', _allowedTypeIds.toList());
-    } else if (_userTypeId != null) {
-      query = query.eq('"Type_id"', _userTypeId);
+    if (clauses.isNotEmpty) {
+      query = query.or(clauses.join(','));
     }
 
     return query;

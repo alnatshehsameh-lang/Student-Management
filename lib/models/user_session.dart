@@ -16,6 +16,7 @@ class UserSession {
   final int? assignedClassId;
   final int? assignedGroupId;
   final int? assignedTypeId;
+  final List<Map<String, dynamic>> managerAssignments;
 
   UserSession({
     this.userId,
@@ -25,6 +26,7 @@ class UserSession {
     this.assignedClassId,
     this.assignedGroupId,
     this.assignedTypeId,
+    this.managerAssignments = const [],
   });
 
   // Convenience getters
@@ -40,6 +42,41 @@ class UserSession {
   
   // Legacy compatibility
   bool get hasClassRestriction => hasRestrictions && assignedClassId != null;
+
+  bool get hasManagerAssignments => managerAssignments.isNotEmpty;
+
+  bool canAccessScope({int? classId, int? groupId, int? typeId}) {
+    if (hasFullAccess) return true;
+
+    final assignments = managerAssignments.isNotEmpty
+        ? managerAssignments
+        : [
+            {
+              'Class_id': assignedClassId,
+              'Group_id': assignedGroupId,
+              'Type_id': assignedTypeId,
+            },
+          ];
+
+    for (final assignment in assignments) {
+      final assignedClassIdValue = _asInt(assignment['Class_id']);
+      final assignedGroupIdValue = _asInt(assignment['Group_id']);
+      final assignedTypeIdValue = _asInt(assignment['Type_id']);
+
+      if (assignedClassIdValue != null && assignedClassIdValue != classId) {
+        continue;
+      }
+      if (assignedGroupIdValue != null && assignedGroupIdValue != groupId) {
+        continue;
+      }
+      if (assignedTypeIdValue != null && assignedTypeIdValue != typeId) {
+        continue;
+      }
+      return true;
+    }
+
+    return false;
+  }
   
   // Check if user can access a specific class/group/type
   bool canAccessClass(int? classId) {
@@ -58,5 +95,12 @@ class UserSession {
     if (hasFullAccess) return true;
     if (assignedTypeId == null) return true;
     return typeId == assignedTypeId;
+  }
+
+  int? _asInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value.toString());
   }
 }

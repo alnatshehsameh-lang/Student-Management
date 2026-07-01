@@ -95,6 +95,21 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
       return;
     }
 
+    if (widget.userSession.managerAssignments.isNotEmpty) {
+      if (mounted) {
+        setState(() {
+          _managerAssignments = List<Map<String, dynamic>>.from(
+            widget.userSession.managerAssignments,
+          );
+          _userClassId = widget.userSession.assignedClassId;
+          _userGroupId = widget.userSession.assignedGroupId;
+          _userTypeId = widget.userSession.assignedTypeId;
+        });
+      }
+      if (mounted) _loadFilterOptions();
+      return;
+    }
+
     try {
       final response = await _client
           .from('Managers')
@@ -210,6 +225,27 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
         _selectedClassId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('يرجى اختيار جميع المرشحات')),
+      );
+      return;
+    }
+
+    final selectedGroup = _selectedGroupId is int
+        ? _selectedGroupId as int
+        : int.tryParse(_selectedGroupId.toString());
+    final selectedClass = _selectedClassId is int
+        ? _selectedClassId as int
+        : int.tryParse(_selectedClassId.toString());
+    final selectedType = _selectedTypeId is int
+        ? _selectedTypeId as int
+        : int.tryParse(_selectedTypeId.toString());
+
+    if (!widget.userSession.canAccessScope(
+      classId: selectedClass,
+      groupId: selectedGroup,
+      typeId: selectedType,
+    )) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('هذه المجموعة أو الحلقة أو الرواية غير مسموح بها لهذا المشرف')),
       );
       return;
     }

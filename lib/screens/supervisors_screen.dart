@@ -401,7 +401,7 @@ class _SupervisorsScreenState extends State<SupervisorsScreen> {
                                 const SizedBox(height: 6),
                                 SearchableLovField<int?>(
                                   value: line['Class_id'] as int?,
-                                  labelText: 'الحلقة',
+                                            labelText: 'الحلقة (اختياري)',
                                   items: [
                                     const SearchableLovItem<int?>(value: null, label: 'اختر الحلقة'),
                                     ..._classes.map(
@@ -435,7 +435,7 @@ class _SupervisorsScreenState extends State<SupervisorsScreen> {
                                 const SizedBox(height: 8),
                                 SearchableLovField<int?>(
                                   value: line['Type_id'] as int?,
-                                  labelText: 'الرواية',
+                                  labelText: 'الرواية (اختياري)',
                                   items: [
                                     const SearchableLovItem<int?>(value: null, label: 'اختر الرواية'),
                                     ..._types.map(
@@ -496,15 +496,15 @@ class _SupervisorsScreenState extends State<SupervisorsScreen> {
                             return;
                           }
 
-                          final normalizedLines = <Map<String, int>>[];
+                          final normalizedLines = <Map<String, int?>>[];
                           final uniqueness = <String>{};
                           for (var i = 0; i < lines.length; i++) {
                             final classId = _asInt(lines[i]['Class_id']);
                             final groupId = _asInt(lines[i]['Group_id']);
                             final typeId = _asInt(lines[i]['Type_id']);
-                            if (classId == null || groupId == null || typeId == null) {
+                            if (groupId == null) {
                               ScaffoldMessenger.of(dialogInnerContext).showSnackBar(
-                                SnackBar(content: Text('يرجى استكمال بيانات السطر ${i + 1}')),
+                                SnackBar(content: Text('يرجى اختيار المجموعة في السطر ${i + 1}')),
                               );
                               return;
                             }

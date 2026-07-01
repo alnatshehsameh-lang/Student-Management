@@ -365,6 +365,7 @@ class _LoginPageState extends State<LoginPage> {
         int? assignedClassId;
         int? assignedGroupId;
         int? assignedTypeId;
+        final managerAssignments = <Map<String, dynamic>>[];
 
         if (userRole == UserRole.supervisor) {
           try {
@@ -372,13 +373,26 @@ class _LoginPageState extends State<LoginPage> {
                 .from('Managers')
                 .select('Class_id, Group_id, Type_id')
                 .eq('User_id', response['id'])
-                .limit(1)
-                .maybeSingle();
+                .order('id');
 
-            if (managerData != null) {
-              assignedClassId = managerData['Class_id'];
-              assignedGroupId = managerData['Group_id'];
-              assignedTypeId = managerData['Type_id'];
+            if (managerData is List && managerData.isNotEmpty) {
+              for (final row in List<Map<String, dynamic>>.from(managerData)) {
+                managerAssignments.add({
+                  'Class_id': row['Class_id'],
+                  'Group_id': row['Group_id'],
+                  'Type_id': row['Type_id'],
+                });
+              }
+
+              assignedClassId = managerAssignments.length == 1
+                  ? managerAssignments.first['Class_id'] as int?
+                  : null;
+              assignedGroupId = managerAssignments.length == 1
+                  ? managerAssignments.first['Group_id'] as int?
+                  : null;
+              assignedTypeId = managerAssignments.length == 1
+                  ? managerAssignments.first['Type_id'] as int?
+                  : null;
             }
           } catch (e) {
             debugPrint('Error fetching supervisor restrictions: $e');
@@ -393,6 +407,7 @@ class _LoginPageState extends State<LoginPage> {
           assignedClassId: assignedClassId,
           assignedGroupId: assignedGroupId,
           assignedTypeId: assignedTypeId,
+          managerAssignments: managerAssignments,
         );
 
         if (mounted) {
