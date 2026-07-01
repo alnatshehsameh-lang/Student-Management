@@ -371,17 +371,40 @@ class _LoginPageState extends State<LoginPage> {
           try {
             final managerData = await _client
                 .from('Managers')
-                .select('Class_id, Group_id, Type_id')
+                .select(
+                  'id, Managers_Lines(Class_id, Group_id, Type_id, is_active, effective_from, effective_to)',
+                )
                 .eq('User_id', response['id'])
                 .order('id');
 
             if (managerData is List && managerData.isNotEmpty) {
+              final now = DateTime.now();
               for (final row in List<Map<String, dynamic>>.from(managerData)) {
-                managerAssignments.add({
-                  'Class_id': row['Class_id'],
-                  'Group_id': row['Group_id'],
-                  'Type_id': row['Type_id'],
-                });
+                final linesRaw = row['Managers_Lines'];
+                if (linesRaw is! List) continue;
+
+                for (final line in List<Map<String, dynamic>>.from(linesRaw)) {
+                  final isActive = line['is_active'] == true;
+                  if (!isActive) continue;
+
+                  final fromRaw = line['effective_from'];
+                  final toRaw = line['effective_to'];
+                  final fromDate = fromRaw == null
+                      ? null
+                      : DateTime.tryParse(fromRaw.toString());
+                  final toDate = toRaw == null
+                      ? null
+                      : DateTime.tryParse(toRaw.toString());
+
+                  if (fromDate != null && fromDate.isAfter(now)) continue;
+                  if (toDate != null && toDate.isBefore(now)) continue;
+
+                  managerAssignments.add({
+                    'Class_id': line['Class_id'],
+                    'Group_id': line['Group_id'],
+                    'Type_id': line['Type_id'],
+                  });
+                }
               }
 
               assignedClassId = managerAssignments.length == 1

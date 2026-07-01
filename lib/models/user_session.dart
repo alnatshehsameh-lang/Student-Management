@@ -63,6 +63,13 @@ class UserSession {
       final assignedGroupIdValue = _asInt(assignment['Group_id']);
       final assignedTypeIdValue = _asInt(assignment['Type_id']);
 
+      // Ignore empty assignment rows; they should not grant unrestricted access.
+      if (assignedClassIdValue == null &&
+          assignedGroupIdValue == null &&
+          assignedTypeIdValue == null) {
+        continue;
+      }
+
       if (assignedClassIdValue != null && assignedClassIdValue != classId) {
         continue;
       }
@@ -81,20 +88,38 @@ class UserSession {
   // Check if user can access a specific class/group/type
   bool canAccessClass(int? classId) {
     if (hasFullAccess) return true;
+    if (!_hasAnyAssignedConstraint()) return false;
     if (assignedClassId == null) return true;
     return classId == assignedClassId;
   }
   
   bool canAccessGroup(int? groupId) {
     if (hasFullAccess) return true;
+    if (!_hasAnyAssignedConstraint()) return false;
     if (assignedGroupId == null) return true;
     return groupId == assignedGroupId;
   }
   
   bool canAccessType(int? typeId) {
     if (hasFullAccess) return true;
+    if (!_hasAnyAssignedConstraint()) return false;
     if (assignedTypeId == null) return true;
     return typeId == assignedTypeId;
+  }
+
+  bool _hasAnyAssignedConstraint() {
+    if (managerAssignments.isNotEmpty) {
+      for (final assignment in managerAssignments) {
+        if (_asInt(assignment['Class_id']) != null ||
+            _asInt(assignment['Group_id']) != null ||
+            _asInt(assignment['Type_id']) != null) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    return assignedClassId != null || assignedGroupId != null || assignedTypeId != null;
   }
 
   int? _asInt(dynamic value) {

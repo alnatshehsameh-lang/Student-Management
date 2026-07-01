@@ -113,12 +113,53 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
     try {
       final response = await _client
           .from('Managers')
-          .select('Class_id, Group_id, Type_id')
+          .select(
+            'id, Managers_Lines(Class_id, Group_id, Type_id, is_active, effective_from, effective_to)',
+          )
           .eq('User_id', widget.userSession.userId!)
           .order('id');
 
       if (response is List && response.isNotEmpty && mounted) {
-        final assignments = List<Map<String, dynamic>>.from(response);
+        final now = DateTime.now();
+        final assignments = <Map<String, dynamic>>[];
+        for (final managerRow in List<Map<String, dynamic>>.from(response)) {
+          final linesRaw = managerRow['Managers_Lines'];
+          if (linesRaw is! List) continue;
+          for (final line in List<Map<String, dynamic>>.from(linesRaw)) {
+            final isActive = line['is_active'] == true;
+            if (!isActive) continue;
+
+            final fromRaw = line['effective_from'];
+            final toRaw = line['effective_to'];
+            final fromDate = fromRaw == null
+                ? null
+                : DateTime.tryParse(fromRaw.toString());
+            final toDate = toRaw == null
+                ? null
+                : DateTime.tryParse(toRaw.toString());
+
+            if (fromDate != null && fromDate.isAfter(now)) continue;
+            if (toDate != null && toDate.isBefore(now)) continue;
+
+            assignments.add({
+              'Class_id': line['Class_id'],
+              'Group_id': line['Group_id'],
+              'Type_id': line['Type_id'],
+            });
+          }
+        }
+
+        if (assignments.isEmpty) {
+          setState(() {
+            _managerAssignments = [];
+            _userClassId = null;
+            _userGroupId = null;
+            _userTypeId = null;
+          });
+          if (mounted) _loadFilterOptions();
+          return;
+        }
+
         final classIds = assignments
             .map((e) => e['Class_id'])
             .whereType<int>()

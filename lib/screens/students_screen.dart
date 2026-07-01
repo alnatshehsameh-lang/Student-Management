@@ -130,16 +130,57 @@ class _StudentsScreenState extends State<StudentsScreen> {
       try {
         final response = await _client
             .from('Managers')
-            .select('Class_id, Group_id, Type_id')
+            .select(
+              'id, Managers_Lines(Class_id, Group_id, Type_id, is_active, effective_from, effective_to)',
+            )
             .eq('User_id', userId)
             .order('id');
 
         if (response is List && response.isNotEmpty) {
-          final assignments = List<Map<String, dynamic>>.from(response);
+          final assignments = <Map<String, dynamic>>[];
+          final now = DateTime.now();
+          for (final managerRow in List<Map<String, dynamic>>.from(response)) {
+            final linesRaw = managerRow['Managers_Lines'];
+            if (linesRaw is! List) continue;
+            for (final line in List<Map<String, dynamic>>.from(linesRaw)) {
+              final isActive = line['is_active'] == true;
+              if (!isActive) continue;
+
+              final fromRaw = line['effective_from'];
+              final toRaw = line['effective_to'];
+              final fromDate = fromRaw == null
+                  ? null
+                  : DateTime.tryParse(fromRaw.toString());
+              final toDate = toRaw == null
+                  ? null
+                  : DateTime.tryParse(toRaw.toString());
+
+              if (fromDate != null && fromDate.isAfter(now)) continue;
+              if (toDate != null && toDate.isBefore(now)) continue;
+
+              assignments.add({
+                'Class_id': line['Class_id'],
+                'Group_id': line['Group_id'],
+                'Type_id': line['Type_id'],
+              });
+            }
+          }
+
+          if (assignments.isEmpty) {
+            if (!mounted) return;
+            setState(() {
+              _managerAssignments = [];
+              _userClassId = null;
+              _userGroupId = null;
+              _userTypeId = null;
+            });
+            return;
+          }
+
           final classIds = <int>{};
           final groupIds = <int>{};
           final typeIds = <int>{};
-          for (final row in List<Map<String, dynamic>>.from(response)) {
+          for (final row in assignments) {
             final classId = _asInt(row['Class_id']);
             final groupId = _asInt(row['Group_id']);
             final typeId = _asInt(row['Type_id']);
@@ -164,16 +205,10 @@ class _StudentsScreenState extends State<StudentsScreen> {
 
     if (!mounted) return;
     setState(() {
-      _userClassId = widget.userSession!.assignedClassId;
-      _userGroupId = widget.userSession!.assignedGroupId;
-      _userTypeId = widget.userSession!.assignedTypeId;
-      _managerAssignments = [
-        {
-          'Class_id': widget.userSession!.assignedClassId,
-          'Group_id': widget.userSession!.assignedGroupId,
-          'Type_id': widget.userSession!.assignedTypeId,
-        },
-      ];
+      _userClassId = null;
+      _userGroupId = null;
+      _userTypeId = null;
+      _managerAssignments = [];
     });
   }
 
@@ -483,6 +518,9 @@ class _StudentsScreenState extends State<StudentsScreen> {
 
     if (clauses.isNotEmpty) {
       query = query.or(clauses.join(','));
+    } else {
+      // Deny all when supervisor has no active assignments.
+      query = query.eq('id', -1);
     }
 
     return query;
