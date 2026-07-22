@@ -1437,9 +1437,15 @@ class _StudentsScreenState extends State<StudentsScreen> {
 
                       if (selectedGroupId != null) {
                         changes['Group_id'] = selectedGroupId;
+                        if (row.containsKey('Group_Name')) {
+                          changes['Group_Name'] = _groupsMap[selectedGroupId] ?? '';
+                        }
                       }
                       if (selectedTypeId != null) {
                         changes['Type_id'] = selectedTypeId;
+                        if (row.containsKey('Type')) {
+                          changes['Type'] = _typesMap[selectedTypeId] ?? '';
+                        }
                       }
 
                       // Find the Class_id based on Class_Number, Group_id, and Type_id
@@ -1467,6 +1473,9 @@ class _StudentsScreenState extends State<StudentsScreen> {
                                 'DEBUG: Found Class_id: $foundClassId',
                               );
                               changes['Class_id'] = foundClassId;
+                              if (row.containsKey('Class_Number')) {
+                                changes['Class_Number'] = classNumberInt;
+                              }
                             } else {
                               debugPrint('DEBUG: No matching class found');
                               if (mounted) {
@@ -2299,6 +2308,56 @@ class StudentsTable extends StatelessWidget {
         final v = row[fk];
         final lower = fk.toString().toLowerCase();
 
+        // Prefer lookup maps based on FK ids to avoid stale denormalized labels.
+        if ((lower.contains('group') || lower.contains('group_id')) &&
+            groupsMap != null &&
+            v != null) {
+          final mapped = groupsMap![v];
+          if (mapped != null && mapped.isNotEmpty) {
+            cells.add(
+              DataCell(
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(mapped, textAlign: TextAlign.right),
+                ),
+              ),
+            );
+            continue;
+          }
+        }
+        if ((lower.contains('type') || lower.contains('type_id')) &&
+            typesMap != null &&
+            v != null) {
+          final mapped = typesMap![v];
+          if (mapped != null && mapped.isNotEmpty) {
+            cells.add(
+              DataCell(
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(mapped, textAlign: TextAlign.right),
+                ),
+              ),
+            );
+            continue;
+          }
+        }
+        if ((lower.contains('class') || lower.contains('class_id')) &&
+            classesMap != null &&
+            v != null) {
+          final mapped = classesMap![v];
+          if (mapped != null && mapped.isNotEmpty) {
+            cells.add(
+              DataCell(
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(mapped, textAlign: TextAlign.right),
+                ),
+              ),
+            );
+            continue;
+          }
+        }
+
         // Prefer direct name fields returned by the server (if you selected them), e.g. 'Group_Name', 'Class_Number', 'Type'
         String? directName;
         if (lower.contains('group')) {
@@ -2324,56 +2383,6 @@ class StudentsTable extends StatelessWidget {
               Align(
                 alignment: Alignment.centerRight,
                 child: Text(directName, textAlign: TextAlign.right),
-              ),
-            ),
-          );
-          continue;
-        }
-
-        // Fallback to lookup maps
-        if ((lower.contains('group') || lower.contains('group_id')) &&
-            groupsMap != null &&
-            v != null) {
-          cells.add(
-            DataCell(
-              Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  groupsMap![v] ?? v.toString(),
-                  textAlign: TextAlign.right,
-                ),
-              ),
-            ),
-          );
-          continue;
-        }
-        if ((lower.contains('type') || lower.contains('type_id')) &&
-            typesMap != null &&
-            v != null) {
-          cells.add(
-            DataCell(
-              Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  typesMap![v] ?? v.toString(),
-                  textAlign: TextAlign.right,
-                ),
-              ),
-            ),
-          );
-          continue;
-        }
-        if ((lower.contains('class') || lower.contains('class_id')) &&
-            classesMap != null &&
-            v != null) {
-          cells.add(
-            DataCell(
-              Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  classesMap![v] ?? v.toString(),
-                  textAlign: TextAlign.right,
-                ),
               ),
             ),
           );
