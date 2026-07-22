@@ -627,11 +627,71 @@ class _HomeScreenState extends State<HomeScreen> {
   int _totalStudents = 0;
   int _totalGroups = 0;
   int _weeklyAttendance = 0;
+  DateTime? _lastDashboardRefreshAt;
   bool _loading = true;
+  RealtimeChannel? _dashboardRealtimeChannel;
+  bool _dashboardRefreshQueued = false;
 
   @override
   void initState() {
     super.initState();
+    _loadDashboardData();
+    _subscribeToDashboardChanges();
+  }
+
+  void _subscribeToDashboardChanges() {
+    final channelName = 'dashboard-counts-${DateTime.now().millisecondsSinceEpoch}';
+    _dashboardRealtimeChannel = _client
+        .channel(channelName)
+        .on(
+          RealtimeListenTypes.postgresChanges,
+          ChannelFilter(event: '*', schema: 'public', table: 'Students'),
+          (payload, [ref]) => _scheduleDashboardRefresh(),
+        )
+        .on(
+          RealtimeListenTypes.postgresChanges,
+          ChannelFilter(event: '*', schema: 'public', table: 'Groups'),
+          (payload, [ref]) => _scheduleDashboardRefresh(),
+        )
+        .on(
+          RealtimeListenTypes.postgresChanges,
+          ChannelFilter(
+            event: '*',
+            schema: 'public',
+            table: 'Attendance_Tadabur',
+          ),
+          (payload, [ref]) => _scheduleDashboardRefresh(),
+        )
+        .on(
+          RealtimeListenTypes.postgresChanges,
+          ChannelFilter(event: '*', schema: 'public', table: 'Attendance_Sard'),
+          (payload, [ref]) => _scheduleDashboardRefresh(),
+        );
+    _dashboardRealtimeChannel!.subscribe();
+  }
+
+  void _scheduleDashboardRefresh() {
+    if (_dashboardRefreshQueued) {
+      return;
+    }
+    _dashboardRefreshQueued = true;
+    Future.delayed(const Duration(milliseconds: 250), () {
+      _dashboardRefreshQueued = false;
+      if (!mounted) {
+        return;
+      }
+      _loadDashboardData();
+    });
+  }
+
+  Future<void> _openAndRefresh(Widget screen) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => screen),
+    );
+    if (!mounted) {
+      return;
+    }
     _loadDashboardData();
   }
 
@@ -669,11 +729,30 @@ class _HomeScreenState extends State<HomeScreen> {
       final tadCount = tadaburRes is List ? tadaburRes.length : 0;
       final sardCount = sardRes is List ? sardRes.length : 0;
       _weeklyAttendance = tadCount + sardCount;
+      _lastDashboardRefreshAt = DateTime.now();
     } catch (e) {
       debugPrint('Dashboard load error: $e');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  String _formatTimestamp(DateTime dateTime) {
+    final y = dateTime.year.toString().padLeft(4, '0');
+    final m = dateTime.month.toString().padLeft(2, '0');
+    final d = dateTime.day.toString().padLeft(2, '0');
+    final h = dateTime.hour.toString().padLeft(2, '0');
+    final min = dateTime.minute.toString().padLeft(2, '0');
+    return '$y-$m-$d $h:$min';
+  }
+
+  @override
+  void dispose() {
+    final channel = _dashboardRealtimeChannel;
+    if (channel != null) {
+      _client.removeChannel(channel);
+    }
+    super.dispose();
   }
 
   @override
@@ -781,12 +860,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                   icon: Icons.school,
                                   label: 'الطالبات',
                                   onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => StudentsScreen(
-                                          userSession: widget.userSession,
-                                        ),
+                                    _openAndRefresh(
+                                      StudentsScreen(
+                                        userSession: widget.userSession,
                                       ),
                                     );
                                   },
@@ -795,12 +871,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                   icon: Icons.group,
                                   label: 'الحضور',
                                   onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => GroupsScreen(
-                                          userSession: widget.userSession,
-                                        ),
+                                    _openAndRefresh(
+                                      GroupsScreen(
+                                        userSession: widget.userSession,
                                       ),
                                     );
                                   },
@@ -809,12 +882,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                   icon: Icons.supervisor_account,
                                   label: 'المشرفات',
                                   onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => SupervisorsScreen(
-                                          userSession: widget.userSession,
-                                        ),
+                                    _openAndRefresh(
+                                      SupervisorsScreen(
+                                        userSession: widget.userSession,
                                       ),
                                     );
                                   },
@@ -839,13 +909,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                   icon: Icons.dashboard_customize,
                                   label: 'Dashboard التحليلات',
                                   onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            ReportsDashboardScreen(
-                                              userSession: widget.userSession,
-                                            ),
+                                    _openAndRefresh(
+                                      ReportsDashboardScreen(
+                                        userSession: widget.userSession,
                                       ),
                                     );
                                   },
@@ -854,13 +920,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                   icon: Icons.assessment,
                                   label: 'تقرير الحضور',
                                   onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            AttendanceReportScreen(
-                                              userSession: widget.userSession,
-                                            ),
+                                    _openAndRefresh(
+                                      AttendanceReportScreen(
+                                        userSession: widget.userSession,
                                       ),
                                     );
                                   },
@@ -885,13 +947,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                   icon: Icons.settings,
                                   label: 'الإعدادات',
                                   onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            LookupSettingsScreen(
-                                              userSession: widget.userSession,
-                                            ),
+                                    _openAndRefresh(
+                                      LookupSettingsScreen(
+                                        userSession: widget.userSession,
                                       ),
                                     );
                                   },
@@ -1049,6 +1107,31 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 ],
                                               );
                                             },
+                                          ),
+                                          const SizedBox(height: 12),
+                                          Align(
+                                            alignment: Alignment.centerRight,
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(
+                                                  Icons.schedule,
+                                                  size: 16,
+                                                  color: Color(0xFF6B7280),
+                                                ),
+                                                const SizedBox(width: 6),
+                                                Text(
+                                                  _lastDashboardRefreshAt == null
+                                                      ? 'اخر تحديث: -'
+                                                      : 'اخر تحديث: ${_formatTimestamp(_lastDashboardRefreshAt!)}',
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                    color: Color(0xFF6B7280),
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         ],
                                       ),
@@ -1212,6 +1295,9 @@ class _GroupsScreenState extends State<GroupsScreen> {
   bool _loading = true;
   List<Map<String, dynamic>> _groups = [];
   Map<int, int> _groupStudentCounts = {};
+  DateTime? _lastGroupCountsRefreshAt;
+  RealtimeChannel? _groupsRealtimeChannel;
+  bool _groupsRefreshQueued = false;
   // per-group students
   bool _studentsLoading = false;
   List<Map<String, dynamic>> _students = [];
@@ -1251,6 +1337,47 @@ class _GroupsScreenState extends State<GroupsScreen> {
       await _fetchUserRestrictions();
       await _fetchGroups();
     });
+    _subscribeToGroupCountChanges();
+  }
+
+  void _subscribeToGroupCountChanges() {
+    final channelName = 'group-counts-${DateTime.now().millisecondsSinceEpoch}';
+    _groupsRealtimeChannel = _client
+        .channel(channelName)
+        .on(
+          RealtimeListenTypes.postgresChanges,
+          ChannelFilter(event: '*', schema: 'public', table: 'Students'),
+          (payload, [ref]) => _scheduleGroupsRefresh(),
+        )
+        .on(
+          RealtimeListenTypes.postgresChanges,
+          ChannelFilter(event: '*', schema: 'public', table: 'Groups'),
+          (payload, [ref]) => _scheduleGroupsRefresh(),
+        );
+    _groupsRealtimeChannel!.subscribe();
+  }
+
+  void _scheduleGroupsRefresh() {
+    if (_groupsRefreshQueued) {
+      return;
+    }
+    _groupsRefreshQueued = true;
+    Future.delayed(const Duration(milliseconds: 250), () {
+      _groupsRefreshQueued = false;
+      if (!mounted) {
+        return;
+      }
+      _fetchGroups();
+    });
+  }
+
+  @override
+  void dispose() {
+    final channel = _groupsRealtimeChannel;
+    if (channel != null) {
+      _client.removeChannel(channel);
+    }
+    super.dispose();
   }
 
   Future<void> _fetchUserRestrictions() async {
@@ -1468,13 +1595,24 @@ class _GroupsScreenState extends State<GroupsScreen> {
         final response = await _client
             .from('Students')
             .select('id', const FetchOptions(count: CountOption.exact))
-            .eq('Group_id', groupId);
+            .eq('Group_id', groupId)
+            .range(0, 0);
         counts[groupId] = response.count ?? 0;
       } catch (_) {
         counts[groupId] = 0;
       }
     }
+    _lastGroupCountsRefreshAt = DateTime.now();
     return counts;
+  }
+
+  String _formatTimestamp(DateTime dateTime) {
+    final y = dateTime.year.toString().padLeft(4, '0');
+    final m = dateTime.month.toString().padLeft(2, '0');
+    final d = dateTime.day.toString().padLeft(2, '0');
+    final h = dateTime.hour.toString().padLeft(2, '0');
+    final min = dateTime.minute.toString().padLeft(2, '0');
+    return '$y-$m-$d $h:$min';
   }
 
   @override
@@ -1523,6 +1661,29 @@ class _GroupsScreenState extends State<GroupsScreen> {
                     ),
 
                     const SizedBox(height: 8),
+                    if (_lastGroupCountsRefreshAt != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.schedule,
+                              size: 16,
+                              color: Color(0xFF6B7280),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'اخر تحديث للعدادات: ${_formatTimestamp(_lastGroupCountsRefreshAt!)}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF6B7280),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     SizedBox(
                       height: 120,
                       child: _groups.isEmpty
