@@ -4,6 +4,7 @@ import '../models/user_session.dart';
 import 'dart:typed_data';
 import 'package:excel/excel.dart' as excel_pkg;
 import 'package:fl_chart/fl_chart.dart';
+import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:universal_html/html.dart' as html;
 import '../widgets/responsive_table_container.dart';
@@ -706,37 +707,37 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
         fontSize: 22,
         fontWeight: pw.FontWeight.bold,
         font: arabicFontData,
-        color: pw.PdfColor.fromInt(0xFFEDF6FF),
+        color: PdfColor.fromInt(0xFFEDF6FF),
       );
       final subtitleStyle = pw.TextStyle(
         fontSize: 12,
         fontWeight: pw.FontWeight.normal,
         font: arabicFontData,
-        color: pw.PdfColor.fromInt(0xFFEDF6FF),
+        color: PdfColor.fromInt(0xFFEDF6FF),
       );
       final labelStyle = pw.TextStyle(
         fontSize: 10,
         fontWeight: pw.FontWeight.bold,
         font: arabicFontData,
-        color: pw.PdfColor.fromInt(0xFF334155),
+        color: PdfColor.fromInt(0xFF334155),
       );
       final valueStyle = pw.TextStyle(
         fontSize: 11,
         fontWeight: pw.FontWeight.bold,
         font: arabicFontData,
-        color: pw.PdfColor.fromInt(0xFF0F172A),
+        color: PdfColor.fromInt(0xFF0F172A),
       );
       final headerStyle = pw.TextStyle(
         fontSize: 10,
         fontWeight: pw.FontWeight.bold,
         font: arabicFontData,
-        color: pw.PdfColor.fromInt(0xFF1F2937),
+        color: PdfColor.fromInt(0xFF1F2937),
       );
       final cellStyle = pw.TextStyle(
         fontSize: 9,
         fontWeight: pw.FontWeight.normal,
         font: arabicFontData,
-        color: pw.PdfColor.fromInt(0xFF1F2937),
+        color: PdfColor.fromInt(0xFF1F2937),
       );
 
       final tableRows = _reportData.map((record) {
@@ -756,7 +757,7 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
 
       pdf.addPage(
         pw.MultiPage(
-          pageFormat: pw.PageFormat.a4,
+          pageFormat: PdfPageFormat.a4,
           margin: const pw.EdgeInsets.all(24),
           footer: (context) {
             final footerText =
@@ -769,7 +770,7 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
                 style: pw.TextStyle(
                   fontSize: 8,
                   font: arabicFontData,
-                  color: pw.PdfColor.fromInt(0xFF5B6475),
+                  color: PdfColor.fromInt(0xFF5B6475),
                 ),
                 textDirection: pw.TextDirection.rtl,
               ),
@@ -778,7 +779,7 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
           build: (context) => [
             pw.Container(
               decoration: pw.BoxDecoration(
-                color: pw.PdfColor.fromInt(0xFF0F172A),
+                color: PdfColor.fromInt(0xFF0F172A),
                 borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
               ),
               padding: const pw.EdgeInsets.all(20),
@@ -816,19 +817,19 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
             pw.Row(
               children: [
                 pw.Expanded(
-                  child: _pdfStatCard('حاضر', stats.attend, pw.PdfColor.fromInt(0xFF2E8B57), headerStyle, cellStyle),
+                  child: _pdfStatCard('حاضر', stats.attend, PdfColor.fromInt(0xFF2E8B57), headerStyle, cellStyle),
                 ),
                 pw.SizedBox(width: 8),
                 pw.Expanded(
-                  child: _pdfStatCard('غائب', stats.absent, pw.PdfColor.fromInt(0xFFDC2626), headerStyle, cellStyle),
+                  child: _pdfStatCard('غائب', stats.absent, PdfColor.fromInt(0xFFDC2626), headerStyle, cellStyle),
                 ),
                 pw.SizedBox(width: 8),
                 pw.Expanded(
-                  child: _pdfStatCard('معتذر', stats.excuse, pw.PdfColor.fromInt(0xFFEAB308), headerStyle, cellStyle),
+                  child: _pdfStatCard('معتذر', stats.excuse, PdfColor.fromInt(0xFFEAB308), headerStyle, cellStyle),
                 ),
                 pw.SizedBox(width: 8),
                 pw.Expanded(
-                  child: _pdfStatCard('المجموع', stats.total, pw.PdfColor.fromInt(0xFF0F172A), headerStyle, cellStyle),
+                  child: _pdfStatCard('المجموع', stats.total, PdfColor.fromInt(0xFF0F172A), headerStyle, cellStyle),
                 ),
               ],
             ),
@@ -851,7 +852,7 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
                 3: const pw.FlexColumnWidth(1.1),
                 4: const pw.FlexColumnWidth(1.1),
               },
-              border: pw.TableBorder.all(color: pw.PdfColor.fromInt(0xFFD1D5DB)),
+              border: pw.TableBorder.all(color: PdfColor.fromInt(0xFFD1D5DB)),
               cellAlignment: pw.Alignment.center,
               headerAlignment: pw.Alignment.center,
               cellPadding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 6),
@@ -1616,9 +1617,9 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
       padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       constraints: const pw.BoxConstraints(minWidth: 140, minHeight: 52),
       decoration: pw.BoxDecoration(
-        color: pw.PdfColor.fromInt(0xFFFAFCFF),
+        color: PdfColor.fromInt(0xFFFAFCFF),
         borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
-        border: pw.Border.all(color: pw.PdfColor.fromInt(0xFFD9E2EC)),
+        border: pw.Border.all(color: PdfColor.fromInt(0xFFD9E2EC)),
       ),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -1634,7 +1635,7 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
   pw.Widget _pdfStatCard(
     String label,
     int value,
-    pw.PdfColor color,
+    PdfColor color,
     pw.TextStyle labelStyle,
     pw.TextStyle valueStyle,
   ) {
@@ -1647,9 +1648,9 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          pw.Text(label, style: labelStyle.copyWith(color: pw.PdfColor.fromInt(0xFFEFF6FF)), textDirection: pw.TextDirection.rtl),
+          pw.Text(label, style: labelStyle.copyWith(color: PdfColor.fromInt(0xFFEFF6FF)), textDirection: pw.TextDirection.rtl),
           pw.SizedBox(height: 6),
-          pw.Text(value.toString(), style: valueStyle.copyWith(color: pw.PdfColor.fromInt(0xFFEFF6FF), fontSize: 18, fontWeight: pw.FontWeight.bold), textDirection: pw.TextDirection.rtl),
+          pw.Text(value.toString(), style: valueStyle.copyWith(color: PdfColor.fromInt(0xFFEFF6FF), fontSize: 18, fontWeight: pw.FontWeight.bold), textDirection: pw.TextDirection.rtl),
         ],
       ),
     );
