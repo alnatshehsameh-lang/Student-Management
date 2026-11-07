@@ -45,6 +45,49 @@ class UserSession {
 
   bool get hasManagerAssignments => managerAssignments.isNotEmpty;
 
+  bool canManageAttendanceForStudent(Map<String, dynamic> studentRow) {
+    if (isAdmin) return true;
+    if (!isSupervisor) return false;
+
+    final studentGroupId = _asInt(
+      studentRow['Group_id'] ??
+          studentRow['group_id'] ??
+          studentRow['GroupID'] ??
+          studentRow['groupID'],
+    );
+    if (studentGroupId == null) return false;
+
+    final assignments = managerAssignments.isNotEmpty
+        ? managerAssignments
+        : [
+            {
+              'Class_id': assignedClassId,
+              'Group_id': assignedGroupId,
+              'Type_id': assignedTypeId,
+            },
+          ];
+
+    final hasClassLevelAssignment = assignments.any((assignment) {
+      final groupId = _asInt(assignment['Group_id']);
+      final classId = _asInt(assignment['Class_id']);
+      return groupId != null && classId != null;
+    });
+
+    if (hasClassLevelAssignment) return false;
+
+    final groupLevelAssignments = assignments.where((assignment) {
+      final groupId = _asInt(assignment['Group_id']);
+      final classId = _asInt(assignment['Class_id']);
+      return groupId != null && classId == null;
+    });
+
+    if (groupLevelAssignments.isEmpty) return false;
+
+    return groupLevelAssignments.any(
+      (assignment) => _asInt(assignment['Group_id']) == studentGroupId,
+    );
+  }
+
   bool canAccessScope({int? classId, int? groupId, int? typeId}) {
     if (hasFullAccess) return true;
 

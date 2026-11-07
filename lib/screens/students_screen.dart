@@ -785,8 +785,14 @@ class _StudentsScreenState extends State<StudentsScreen> {
     return DateTime.tryParse(raw);
   }
 
+  bool _canManageAttendanceOverride(Map<String, dynamic> row) {
+    final session = widget.userSession;
+    if (session == null) return false;
+    return session.canManageAttendanceForStudent(row);
+  }
+
   Future<void> _showAttendanceOverrideDialog(Map<String, dynamic> row) async {
-    if (!(widget.userSession?.hasFullAccess ?? false)) {
+    if (!_canManageAttendanceOverride(row)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -2009,6 +2015,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                       onEdit: _showEditDialog,
                       onDelete: _deleteRow,
                       onManageOverride: _showAttendanceOverrideDialog,
+                      canManageOverride: _canManageAttendanceOverride,
                       groupsMap: _groupsMap.isNotEmpty ? _groupsMap : null,
                       typesMap: _typesMap.isNotEmpty ? _typesMap : null,
                       classesMap: _classesMap.isNotEmpty ? _classesMap : null,
@@ -2097,6 +2104,7 @@ class StudentsTable extends StatelessWidget {
   final void Function(Map<String, dynamic>)? onEdit;
   final Future<void> Function(dynamic id)? onDelete;
   final void Function(Map<String, dynamic>)? onManageOverride;
+  final bool Function(Map<String, dynamic>)? canManageOverride;
   final Map<dynamic, String>? groupsMap;
   final Map<dynamic, String>? typesMap;
   final Map<dynamic, String>? classesMap;
@@ -2108,6 +2116,7 @@ class StudentsTable extends StatelessWidget {
     this.onEdit,
     this.onDelete,
     this.onManageOverride,
+    this.canManageOverride,
     this.groupsMap,
     this.typesMap,
     this.classesMap,
@@ -2444,15 +2453,26 @@ class StudentsTable extends StatelessWidget {
                 }
               }
             },
-            itemBuilder: (_) => [
-              const PopupMenuItem(value: 'view', child: Text('عرض')),
-              const PopupMenuItem(value: 'edit', child: Text('تعديل')),
-              const PopupMenuItem(
-                value: 'override',
-                child: Text('تحويل الحضور'),
-              ),
-              const PopupMenuItem(value: 'delete', child: Text('حذف')),
-            ],
+            itemBuilder: (_) {
+              final items = <PopupMenuEntry<String>>[
+                const PopupMenuItem(value: 'view', child: Text('عرض')),
+                const PopupMenuItem(value: 'edit', child: Text('تعديل')),
+              ];
+
+              final canManage = onManageOverride != null &&
+                  (canManageOverride == null || canManageOverride!(row));
+              if (canManage) {
+                items.add(
+                  const PopupMenuItem(
+                    value: 'override',
+                    child: Text('تحويل الحضور'),
+                  ),
+                );
+              }
+
+              items.add(const PopupMenuItem(value: 'delete', child: Text('حذف')));
+              return items;
+            },
           ),
         ),
       );
