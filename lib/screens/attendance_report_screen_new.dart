@@ -74,6 +74,12 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
 
   // Report data
   List<Map<String, dynamic>> _reportData = [];
+  String _reportGroupName = 'غير محدد';
+  String _reportClassName = 'غير محدد';
+  String _reportTypeName = 'غير محدد';
+  String _reportSupervisorName = 'غير محدد';
+  String _reportDateRange = 'غير محدد';
+  DateTime _reportGeneratedAt = DateTime.now();
   bool _loading = false;
   bool _filtersLoading = true;
 
@@ -272,13 +278,20 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
 
     final selectedGroup = _selectedGroupId is int
         ? _selectedGroupId as int
-        : int.tryParse(_selectedGroupId.toString());
+        : int.tryParse(_selectedGroupId.toString()) ?? -1;
     final selectedClass = _selectedClassId is int
         ? _selectedClassId as int
-        : int.tryParse(_selectedClassId.toString());
+        : int.tryParse(_selectedClassId.toString()) ?? -1;
     final selectedType = _selectedTypeId is int
         ? _selectedTypeId as int
-        : int.tryParse(_selectedTypeId.toString());
+        : int.tryParse(_selectedTypeId.toString()) ?? -1;
+
+    if (selectedGroup < 0 || selectedClass < 0 || selectedType < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('يرجى اختيار جميع المرشحات')),
+      );
+      return;
+    }
 
     if (!widget.userSession.canAccessScope(
       classId: selectedClass,
@@ -302,6 +315,14 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
     try {
       final startDateStr = _startDate!.toIso8601String().split('T')[0];
       final endDateStr = _endDate!.toIso8601String().split('T')[0];
+
+      final reportMeta = await _loadReportHeaderMetadata(
+        groupId: selectedGroup,
+        classId: selectedClass,
+        typeId: selectedType,
+        startDate: _startDate!,
+        endDate: _endDate!,
+      );
 
       final overrideRes = await _client
           .from('Student_Attendance_Overrides')
@@ -487,6 +508,12 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
       if (mounted) {
         setState(() {
           _reportData = combined;
+          _reportGroupName = reportMeta['groupName'] ?? 'غير محدد';
+          _reportClassName = reportMeta['className'] ?? 'غير محدد';
+          _reportTypeName = reportMeta['typeName'] ?? 'غير محدد';
+          _reportSupervisorName = reportMeta['supervisorName'] ?? 'غير محدد';
+          _reportDateRange = reportMeta['dateRange'] ?? 'غير محدد';
+          _reportGeneratedAt = DateTime.now();
           _loading = false;
         });
 
@@ -672,124 +699,162 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
 
     try {
       final pdf = pw.Document();
-
-      // Load Arabic font from Google Fonts
       final arabicFontData = await _loadArabicFont();
+      final stats = _computeStats();
 
-      // Create text styles with Arabic font
       final titleStyle = pw.TextStyle(
-        fontSize: 20,
+        fontSize: 22,
         fontWeight: pw.FontWeight.bold,
         font: arabicFontData,
+        color: pw.PdfColor.fromInt(0xFFEDF6FF),
       );
-
-      final arabicHeaderStyle = pw.TextStyle(
+      final subtitleStyle = pw.TextStyle(
         fontSize: 12,
+        fontWeight: pw.FontWeight.normal,
+        font: arabicFontData,
+        color: pw.PdfColor.fromInt(0xFFEDF6FF),
+      );
+      final labelStyle = pw.TextStyle(
+        fontSize: 10,
         fontWeight: pw.FontWeight.bold,
         font: arabicFontData,
+        color: pw.PdfColor.fromInt(0xFF334155),
+      );
+      final valueStyle = pw.TextStyle(
+        fontSize: 11,
+        fontWeight: pw.FontWeight.bold,
+        font: arabicFontData,
+        color: pw.PdfColor.fromInt(0xFF0F172A),
+      );
+      final headerStyle = pw.TextStyle(
+        fontSize: 10,
+        fontWeight: pw.FontWeight.bold,
+        font: arabicFontData,
+        color: pw.PdfColor.fromInt(0xFF1F2937),
+      );
+      final cellStyle = pw.TextStyle(
+        fontSize: 9,
+        fontWeight: pw.FontWeight.normal,
+        font: arabicFontData,
+        color: pw.PdfColor.fromInt(0xFF1F2937),
       );
 
-      final arabicStyle = pw.TextStyle(fontSize: 11, font: arabicFontData);
-
-      // Compute statistics
-      var attend = 0, absent = 0, excuse = 0;
-      for (final record in _reportData) {
-        if (record['Attend_flag'] == true || record['Attend_flag'] == 1) {
-          attend++;
-        }
-        if (record['Absent_flag'] == true || record['Absent_flag'] == 1) {
-          absent++;
-        }
-        if (record['Execuse_flag'] == true || record['Execuse_flag'] == 1) {
-          excuse++;
-        }
-      }
+      final tableRows = _reportData.map((record) {
+        final date = record['Report_date']?.toString().split('T')[0] ?? '';
+        final studentName = record['Students']?['Student_Name'] ?? '';
+        final studentCode = record['Students']?['Student_Code']?.toString() ?? '';
+        final type = record['_type'] ?? '';
+        final status = _statusFromRecord(record);
+        return [
+          date,
+          studentName,
+          studentCode,
+          type,
+          status,
+        ];
+      }).toList();
 
       pdf.addPage(
         pw.MultiPage(
+          pageFormat: pw.PageFormat.a4,
+          margin: const pw.EdgeInsets.all(24),
+          footer: (context) {
+            final footerText =
+                'تاريخ الإصدار: ${_reportGeneratedAt.toLocal().toString().split('.').first}  |  صفحة ${context.pageNumber} من ${context.pagesCount}';
+            return pw.Container(
+              alignment: pw.Alignment.center,
+              padding: const pw.EdgeInsets.only(top: 8),
+              child: pw.Text(
+                footerText,
+                style: pw.TextStyle(
+                  fontSize: 8,
+                  font: arabicFontData,
+                  color: pw.PdfColor.fromInt(0xFF5B6475),
+                ),
+                textDirection: pw.TextDirection.rtl,
+              ),
+            );
+          },
           build: (context) => [
-            // Title
-            pw.Text(
-              'تقرير الحضور',
-              style: titleStyle,
-              textDirection: pw.TextDirection.rtl,
+            pw.Container(
+              decoration: pw.BoxDecoration(
+                color: pw.PdfColor.fromInt(0xFF0F172A),
+                borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+              ),
+              padding: const pw.EdgeInsets.all(20),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    'تقرير الحضور والغياب',
+                    style: titleStyle,
+                    textDirection: pw.TextDirection.rtl,
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    'تقرير متابعة حضور الطلاب',
+                    style: subtitleStyle,
+                    textDirection: pw.TextDirection.rtl,
+                  ),
+                ],
+              ),
             ),
-            pw.SizedBox(height: 20),
-
-            // Statistics Summary
+            pw.SizedBox(height: 12),
+            pw.Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _pdfInfoChip('المجموعة', _reportGroupName, labelStyle, valueStyle),
+                _pdfInfoChip('الحلقة', _reportClassName, labelStyle, valueStyle),
+                _pdfInfoChip('النوع', _reportTypeName, labelStyle, valueStyle),
+                _pdfInfoChip('مشرف الحلقة', _reportSupervisorName, labelStyle, valueStyle),
+                _pdfInfoChip('تاريخ الحضور / الفترة', _reportDateRange, labelStyle, valueStyle),
+                _pdfInfoChip('تاريخ إصدار التقرير', _formatPdfDate(_reportGeneratedAt), labelStyle, valueStyle),
+              ],
+            ),
+            pw.SizedBox(height: 16),
+            pw.Row(
+              children: [
+                pw.Expanded(
+                  child: _pdfStatCard('حاضر', stats.attend, pw.PdfColor.fromInt(0xFF2E8B57), headerStyle, cellStyle),
+                ),
+                pw.SizedBox(width: 8),
+                pw.Expanded(
+                  child: _pdfStatCard('غائب', stats.absent, pw.PdfColor.fromInt(0xFFDC2626), headerStyle, cellStyle),
+                ),
+                pw.SizedBox(width: 8),
+                pw.Expanded(
+                  child: _pdfStatCard('معتذر', stats.excuse, pw.PdfColor.fromInt(0xFFEAB308), headerStyle, cellStyle),
+                ),
+                pw.SizedBox(width: 8),
+                pw.Expanded(
+                  child: _pdfStatCard('المجموع', stats.total, pw.PdfColor.fromInt(0xFF0F172A), headerStyle, cellStyle),
+                ),
+              ],
+            ),
+            pw.SizedBox(height: 18),
             pw.Text(
-              'ملخص الإحصائيات',
-              style: arabicHeaderStyle,
+              'تفاصيل الطلاب',
+              style: headerStyle,
               textDirection: pw.TextDirection.rtl,
             ),
             pw.SizedBox(height: 8),
             pw.TableHelper.fromTextArray(
-              headers: ['الحالة', 'العدد'],
-              headerStyle: arabicHeaderStyle,
-              cellStyle: arabicStyle,
-              data: [
-                ['حاضر', attend.toString()],
-                ['غائب', absent.toString()],
-                ['معتذر', excuse.toString()],
-                ['المجموع', (attend + absent + excuse).toString()],
-              ],
-              cellAlignment: pw.Alignment.centerLeft,
-            ),
-            pw.SizedBox(height: 20),
-
-            // Main Data Table
-            pw.Text(
-              'تفاصيل السجلات',
-              style: arabicHeaderStyle,
-              textDirection: pw.TextDirection.rtl,
-            ),
-            pw.SizedBox(height: 8),
-            pw.TableHelper.fromTextArray(
-              headers: [
-                'التاريخ',
-                'اسم الطالب',
-                'رقم الطالب',
-                'النوع',
-                'حاضر',
-                'غائب',
-                'معتذر',
-              ],
-              headerStyle: arabicHeaderStyle,
-              cellStyle: arabicStyle,
-              data: _reportData.map((record) {
-                final date =
-                    record['Report_date']?.toString().split('T')[0] ?? '';
-                final studentName = record['Students']?['Student_Name'] ?? '';
-                final studentCode =
-                    record['Students']?['Student_Code']?.toString() ?? '';
-                final type = record['_type'] ?? '';
-                final attend =
-                    (record['Attend_flag'] == true ||
-                        record['Attend_flag'] == 1)
-                    ? '✓'
-                    : '';
-                final absent =
-                    (record['Absent_flag'] == true ||
-                        record['Absent_flag'] == 1)
-                    ? '✓'
-                    : '';
-                final excuse =
-                    (record['Execuse_flag'] == true ||
-                        record['Execuse_flag'] == 1)
-                    ? '✓'
-                    : '';
-
-                return [
-                  date,
-                  studentName,
-                  studentCode,
-                  type,
-                  attend,
-                  absent,
-                  excuse,
-                ];
-              }).toList(),
-              cellAlignment: pw.Alignment.centerLeft,
+              headers: ['التاريخ', 'اسم الطالب', 'رقم الطالب', 'النوع', 'الحالة'],
+              headerStyle: headerStyle,
+              cellStyle: cellStyle,
+              data: tableRows,
+              columnWidths: {
+                0: const pw.FlexColumnWidth(1.2),
+                1: const pw.FlexColumnWidth(2.2),
+                2: const pw.FlexColumnWidth(1.1),
+                3: const pw.FlexColumnWidth(1.1),
+                4: const pw.FlexColumnWidth(1.1),
+              },
+              border: pw.TableBorder.all(color: pw.PdfColor.fromInt(0xFFD1D5DB)),
+              cellAlignment: pw.Alignment.center,
+              headerAlignment: pw.Alignment.center,
+              cellPadding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 6),
             ),
           ],
           textDirection: pw.TextDirection.rtl,
@@ -990,102 +1055,77 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
       padding: const EdgeInsets.all(16),
       child: ResponsiveTableContainer(
         child: DataTable(
+          headingRowColor: WidgetStateProperty.all(
+            const Color(0xFF0F172A).withOpacity(0.08),
+          ),
           dataTextStyle: const TextStyle(
-            fontSize: 14,
+            fontSize: 13,
             fontWeight: FontWeight.w600,
             color: Color(0xFF111827),
           ),
-          headingRowColor: WidgetStateProperty.all(
-            const Color(0xFF6366F1).withOpacity(0.1),
-          ),
-          columnSpacing: 24,
-          columns: const [
-            DataColumn(
-              label: Text(
-                'التاريخ',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'اسم الطالب',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'رقم الطالب',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'النوع',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'حاضر',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'غائب',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'معتذر',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-          rows: _reportData.map((record) {
+          columnSpacing: 18,
+          horizontalMargin: 12,
+          dividerThickness: 1,
+          rows: _reportData.asMap().entries.map((entry) {
+            final index = entry.key + 1;
+            final record = entry.value;
             final date = record['Report_date']?.toString().split('T')[0] ?? '';
             final studentName = record['Students']?['Student_Name'] ?? '';
             final studentCode =
                 record['Students']?['Student_Code']?.toString() ?? '';
             final type = record['_type'] ?? '';
-            final attend =
-                record['Attend_flag'] == true || record['Attend_flag'] == 1;
-            final absent =
-                record['Absent_flag'] == true || record['Absent_flag'] == 1;
-            final excuse =
-                record['Execuse_flag'] == true || record['Execuse_flag'] == 1;
+            final status = _statusFromRecord(record);
+            final statusColor = _statusColor(status);
 
             return DataRow(
+              color: WidgetStateProperty.resolveWith((states) {
+                return index.isEven ? Colors.grey[50] : Colors.white;
+              }),
               cells: [
+                DataCell(Text(index.toString())),
                 DataCell(Text(date)),
-                DataCell(Text(studentName)),
+                DataCell(
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 220),
+                    child: Text(
+                      studentName,
+                      softWrap: true,
+                      overflow: TextOverflow.visible,
+                    ),
+                  ),
+                ),
                 DataCell(Text(studentCode)),
                 DataCell(Text(type)),
                 DataCell(
-                  Icon(
-                    attend ? Icons.check_circle : Icons.remove_circle_outline,
-                    color: attend ? Colors.green : Colors.grey,
-                    size: 20,
-                  ),
-                ),
-                DataCell(
-                  Icon(
-                    absent ? Icons.check_circle : Icons.remove_circle_outline,
-                    color: absent ? Colors.red : Colors.grey,
-                    size: 20,
-                  ),
-                ),
-                DataCell(
-                  Icon(
-                    excuse ? Icons.check_circle : Icons.remove_circle_outline,
-                    color: excuse ? Colors.orange : Colors.grey,
-                    size: 20,
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Text(
+                      status,
+                      style: TextStyle(
+                        color: statusColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
               ],
             );
           }).toList(),
+          columns: const [
+            DataColumn(label: Text('م')),
+            DataColumn(label: Text('التاريخ')),
+            DataColumn(label: Text('اسم الطالب')),
+            DataColumn(label: Text('رقم الطالب')),
+            DataColumn(label: Text('النوع')),
+            DataColumn(label: Text('الحالة')),
+          ],
         ),
       ),
     );
@@ -1255,31 +1295,369 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
     return _AttendanceStats(attend: attend, absent: absent, excuse: excuse);
   }
 
-  Widget _buildReportAndCharts() {
-    final stats = _computeStats();
+  String _statusFromRecord(Map<String, dynamic> record) {
+    if (record['Attend_flag'] == true || record['Attend_flag'] == 1) {
+      return 'حاضر';
+    }
+    if (record['Absent_flag'] == true || record['Absent_flag'] == 1) {
+      return 'غائب';
+    }
+    if (record['Execuse_flag'] == true || record['Execuse_flag'] == 1) {
+      return 'معتذر';
+    }
+    return 'غير محدد';
+  }
+
+  Color _statusColor(String status) {
+    switch (status) {
+      case 'حاضر':
+        return Colors.green;
+      case 'غائب':
+        return Colors.red;
+      case 'معتذر':
+        return Colors.orange;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Widget _buildStatsCards(_AttendanceStats stats) {
+    final cards = [
+      _buildStatCard('حاضر', stats.attend, Colors.green.shade700),
+      _buildStatCard('غائب', stats.absent, Colors.red.shade700),
+      _buildStatCard('معتذر', stats.excuse, Colors.orange.shade700),
+      _buildStatCard('المجموع', stats.total, const Color(0xFF0F172A)),
+    ];
+
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isNarrow = constraints.maxWidth < 1100;
-        if (isNarrow) {
-          return Column(
-            children: [
-              _buildChartsPanel(stats),
-              const SizedBox(height: 12),
-              Expanded(child: _buildReportTable()),
-            ],
+        final isWide = constraints.maxWidth >= 800;
+        if (isWide) {
+          return Row(
+            children: cards
+                .map((card) => Expanded(child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      child: card,
+                    )))
+                .toList(),
           );
         }
 
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(child: _buildReportTable()),
-            const SizedBox(width: 16),
-            SizedBox(width: 320, child: _buildChartsPanel(stats)),
-          ],
+        return Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: cards,
         );
       },
     );
+  }
+
+  Widget _buildStatCard(String label, int value, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value.toString(),
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+              fontSize: 28,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReportHeader() {
+    final infoItems = [
+      _buildInfoItem('المجموعة', _reportGroupName),
+      _buildInfoItem('الحلقة', _reportClassName),
+      _buildInfoItem('النوع', _reportTypeName),
+      _buildInfoItem('مشرف الحلقة', _reportSupervisorName),
+      _buildInfoItem('تاريخ الحضور / الفترة', _reportDateRange),
+      _buildInfoItem('تاريخ إصدار التقرير', _formatReportDate(_reportGeneratedAt)),
+    ];
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F172A),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'تقرير الحضور والغياب',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'تقرير متابعة حضور الطلاب',
+            style: TextStyle(
+              color: Color(0xFFE2E8F0),
+              fontSize: 15,
+            ),
+          ),
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: infoItems,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoItem(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      constraints: const BoxConstraints(minWidth: 150, minHeight: 46),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white.withOpacity(0.12)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFFCBD5E1),
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatReportDate(DateTime date) {
+    final local = date.toLocal();
+    return '${local.year}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')} ${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
+  }
+
+  Future<Map<String, String>> _loadReportHeaderMetadata({
+    required int groupId,
+    required int classId,
+    required int typeId,
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    String groupName = 'غير محدد';
+    String className = 'غير محدد';
+    String typeName = 'غير محدد';
+    String supervisorName = 'غير محدد';
+
+    try {
+      final groupRes = await _client
+          .from('Groups')
+          .select('"Group_Name"')
+          .eq('id', groupId)
+          .maybeSingle();
+      if (groupRes != null) {
+        groupName = groupRes['Group_Name']?.toString() ?? 'غير محدد';
+      }
+
+      final classRes = await _client
+          .from('Classes')
+          .select('"Class_Number"')
+          .eq('id', classId)
+          .maybeSingle();
+      if (classRes != null) {
+        className = classRes['Class_Number']?.toString() ?? 'غير محدد';
+      }
+
+      final typeRes = await _client
+          .from('Types')
+          .select('"Type"')
+          .eq('id', typeId)
+          .maybeSingle();
+      if (typeRes != null) {
+        typeName = typeRes['Type']?.toString() ?? 'غير محدد';
+      }
+    } catch (_) {}
+
+    try {
+      final managersRes = await _client
+          .from('Managers')
+          .select(
+            'id, full_name, User_id, Managers_Lines(id, Group_id, Class_id, Type_id, is_active, effective_from, effective_to)',
+          )
+          .order('id');
+
+      if (managersRes is List) {
+        for (final managerRow in List<Map<String, dynamic>>.from(managersRes)) {
+          final linesRaw = managerRow['Managers_Lines'];
+          if (linesRaw is! List) continue;
+
+          for (final line in List<Map<String, dynamic>>.from(linesRaw)) {
+            final isActive = line['is_active'] == true;
+            final lineGroupId = line['Group_id'];
+            final lineClassId = line['Class_id'];
+            if (!isActive || lineGroupId != groupId || lineClassId != classId) {
+              continue;
+            }
+
+            final managerName =
+                managerRow['full_name']?.toString() ?? 'غير محدد';
+            if (managerName.isNotEmpty) {
+              supervisorName = managerName;
+            }
+            break;
+          }
+        }
+      }
+    } catch (_) {}
+
+    final startText = '${startDate.year}-${startDate.month.toString().padLeft(2, '0')}-${startDate.day.toString().padLeft(2, '0')}';
+    final endText = '${endDate.year}-${endDate.month.toString().padLeft(2, '0')}-${endDate.day.toString().padLeft(2, '0')}';
+
+    return {
+      'groupName': groupName,
+      'className': className,
+      'typeName': typeName,
+      'supervisorName': supervisorName,
+      'dateRange': '$startText - $endText',
+    };
+  }
+
+  Widget _buildReportAndCharts() {
+    final stats = _computeStats();
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildReportHeader(),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _buildStatsCards(stats),
+            ),
+            const SizedBox(height: 16),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isWide = constraints.maxWidth >= 1100;
+                if (isWide) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: _buildReportTable()),
+                      const SizedBox(width: 12),
+                      SizedBox(width: 320, child: _buildChartsPanel(stats)),
+                    ],
+                  );
+                }
+
+                return Column(
+                  children: [
+                    _buildChartsPanel(stats),
+                    const SizedBox(height: 12),
+                    _buildReportTable(),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  pw.Widget _pdfInfoChip(
+    String label,
+    String value,
+    pw.TextStyle labelStyle,
+    pw.TextStyle valueStyle,
+  ) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      constraints: const pw.BoxConstraints(minWidth: 140, minHeight: 52),
+      decoration: pw.BoxDecoration(
+        color: pw.PdfColor.fromInt(0xFFFAFCFF),
+        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+        border: pw.Border.all(color: pw.PdfColor.fromInt(0xFFD9E2EC)),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(label, style: labelStyle, textDirection: pw.TextDirection.rtl),
+          pw.SizedBox(height: 4),
+          pw.Text(value, style: valueStyle, textDirection: pw.TextDirection.rtl),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _pdfStatCard(
+    String label,
+    int value,
+    pw.PdfColor color,
+    pw.TextStyle labelStyle,
+    pw.TextStyle valueStyle,
+  ) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        color: color,
+        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(label, style: labelStyle.copyWith(color: pw.PdfColor.fromInt(0xFFEFF6FF)), textDirection: pw.TextDirection.rtl),
+          pw.SizedBox(height: 6),
+          pw.Text(value.toString(), style: valueStyle.copyWith(color: pw.PdfColor.fromInt(0xFFEFF6FF), fontSize: 18, fontWeight: pw.FontWeight.bold), textDirection: pw.TextDirection.rtl),
+        ],
+      ),
+    );
+  }
+
+  String _formatPdfDate(DateTime date) {
+    final local = date.toLocal();
+    return '${local.year}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')} ${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
   }
 
   Widget _buildChartsPanel(_AttendanceStats stats) {
