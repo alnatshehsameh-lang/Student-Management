@@ -5,16 +5,16 @@
 // gestures. You can also use WidgetTester to find child widgets in the widget
 // tree, read text, and verify that the values of widget properties are correct.
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:hosoon_academy/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
-    // Verify that the login UI is shown (app was refactored to a login flow)
-    expect(find.text('تسجيل الدخول'), findsOneWidget);
-    expect(find.text('دخول'), findsOneWidget);
+  test('attendance popup menu keeps only view action', () {
+    final items = buildAttendanceActionMenuItems();
+
+    expect(items, hasLength(1));
+    expect((items.first as PopupMenuItem<String>).value, 'view');
   });
 }

@@ -9,6 +9,15 @@ import 'screens/lookup_settings_screen.dart';
 import 'screens/supervisors_screen.dart';
 import 'models/user_session.dart';
 
+List<PopupMenuEntry<String>> buildAttendanceActionMenuItems() {
+  return const [
+    PopupMenuItem<String>(
+      value: 'view',
+      child: Text('عرض'),
+    ),
+  ];
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Supabase.initialize(
@@ -2412,97 +2421,10 @@ class _GroupsScreenState extends State<GroupsScreen> {
                                                             ],
                                                           ),
                                                         );
-                                                      } else if (v ==
-                                                          'delete') {
-                                                        final confirm = await showDialog<bool>(
-                                                          context: context,
-                                                          builder: (c) => AlertDialog(
-                                                            title: const Text(
-                                                              'حذف',
-                                                            ),
-                                                            content: const Text(
-                                                              'هل تريد حذف هذا السجل؟',
-                                                            ),
-                                                            actions: [
-                                                              TextButton(
-                                                                onPressed: () =>
-                                                                    Navigator.of(
-                                                                      c,
-                                                                    ).pop(
-                                                                      false,
-                                                                    ),
-                                                                child:
-                                                                    const Text(
-                                                                      'لا',
-                                                                    ),
-                                                              ),
-                                                              TextButton(
-                                                                onPressed: () =>
-                                                                    Navigator.of(
-                                                                      c,
-                                                                    ).pop(true),
-                                                                child:
-                                                                    const Text(
-                                                                      'نعم',
-                                                                    ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        );
-                                                        if (confirm == true) {
-                                                          try {
-                                                            await _client
-                                                                .from(
-                                                                  'Students',
-                                                                )
-                                                                .delete()
-                                                                .eq(
-                                                                  'id',
-                                                                  row['id'],
-                                                                );
-                                                            if (_selectedGroupId !=
-                                                                null) {
-                                                              if (_selectedClassId !=
-                                                                  null) {
-                                                                await _fetchStudentsForGroupTypeClass(
-                                                                  _selectedGroupId!,
-                                                                  _selectedTypeId,
-                                                                  _selectedClassId,
-                                                                );
-                                                              } else if (_selectedTypeId !=
-                                                                  null) {
-                                                                await _fetchClassEntriesForGroupType(
-                                                                  _selectedGroupId!,
-                                                                  _selectedTypeId,
-                                                                );
-                                                              }
-                                                            }
-                                                          } catch (e) {
-                                                            if (mounted) {
-                                                              ScaffoldMessenger.of(
-                                                                context,
-                                                              ).showSnackBar(
-                                                                SnackBar(
-                                                                  content: Text(
-                                                                    'حذف فشل: $e',
-                                                                  ),
-                                                                ),
-                                                              );
-                                                            }
-                                                          }
-                                                        }
                                                       }
                                                     },
-                                                    itemBuilder: (_) => [
-                                                      const PopupMenuItem(
-                                                        value: 'view',
-                                                        child: Text('عرض'),
-                                                      ),
-                                                      const PopupMenuItem(
-                                                        value: 'delete',
-                                                        child: Text('حذف'),
-                                                      ),
-                                                    ],
+                                                    itemBuilder: (_) =>
+                                                        buildAttendanceActionMenuItems(),
                                                   ),
                                                 ),
                                               ],
