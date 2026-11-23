@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'screens/students_screen.dart';
 import 'screens/attendance_report_screen.dart';
+import 'screens/monthly_attendance_summary_screen.dart';
 import 'screens/reports_dashboard_screen.dart';
 import 'screens/lookup_settings_screen.dart';
 import 'screens/supervisors_screen.dart';
@@ -931,6 +932,17 @@ class _HomeScreenState extends State<HomeScreen> {
                                   onTap: () {
                                     _openAndRefresh(
                                       AttendanceReportScreen(
+                                        userSession: widget.userSession,
+                                      ),
+                                    );
+                                  },
+                                ),
+                                _NavItem(
+                                  icon: Icons.calendar_view_month,
+                                  label: 'ملخص الحضور الشهري',
+                                  onTap: () {
+                                    _openAndRefresh(
+                                      MonthlyAttendanceSummaryScreen(
                                         userSession: widget.userSession,
                                       ),
                                     );

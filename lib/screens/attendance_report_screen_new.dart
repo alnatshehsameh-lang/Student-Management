@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_session.dart';
 import 'dart:typed_data';
@@ -31,6 +32,18 @@ class _AttendanceStats {
   });
 
   int get total => attend + absent + excuse;
+}
+
+class _PdfFonts {
+  final pw.Font regular;
+  final pw.Font medium;
+  final pw.Font bold;
+
+  _PdfFonts({
+    required this.regular,
+    required this.medium,
+    required this.bold,
+  });
 }
 
 class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
@@ -700,43 +713,43 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
 
     try {
       final pdf = pw.Document();
-      final arabicFontData = await _loadArabicFont();
+      final pdfFonts = await _loadPdfFonts();
       final stats = _computeStats();
 
       final titleStyle = pw.TextStyle(
         fontSize: 22,
         fontWeight: pw.FontWeight.bold,
-        font: arabicFontData,
+        font: pdfFonts.bold,
         color: PdfColor.fromInt(0xFFEDF6FF),
       );
       final subtitleStyle = pw.TextStyle(
         fontSize: 12,
-        fontWeight: pw.FontWeight.normal,
-        font: arabicFontData,
+        fontWeight: pw.FontWeight.bold,
+        font: pdfFonts.bold,
         color: PdfColor.fromInt(0xFFEDF6FF),
       );
       final labelStyle = pw.TextStyle(
         fontSize: 10,
         fontWeight: pw.FontWeight.bold,
-        font: arabicFontData,
+        font: pdfFonts.bold,
         color: PdfColor.fromInt(0xFF334155),
       );
       final valueStyle = pw.TextStyle(
         fontSize: 11,
-        fontWeight: pw.FontWeight.bold,
-        font: arabicFontData,
+        fontWeight: pw.FontWeight.normal,
+        font: pdfFonts.medium,
         color: PdfColor.fromInt(0xFF0F172A),
       );
       final headerStyle = pw.TextStyle(
         fontSize: 10,
         fontWeight: pw.FontWeight.bold,
-        font: arabicFontData,
+        font: pdfFonts.bold,
         color: PdfColor.fromInt(0xFF1F2937),
       );
       final cellStyle = pw.TextStyle(
         fontSize: 9,
         fontWeight: pw.FontWeight.normal,
-        font: arabicFontData,
+        font: pdfFonts.medium,
         color: PdfColor.fromInt(0xFF1F2937),
       );
 
@@ -769,7 +782,7 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
                 footerText,
                 style: pw.TextStyle(
                   fontSize: 8,
-                  font: arabicFontData,
+                  font: pdfFonts.regular,
                   color: PdfColor.fromInt(0xFF5B6475),
                 ),
                 textDirection: pw.TextDirection.rtl,
@@ -888,33 +901,29 @@ class _AttendanceReportScreenNewState extends State<AttendanceReportScreenNew> {
     }
   }
 
-  Future<pw.Font> _loadArabicFont() async {
+  Future<pw.Font> _loadFontAsset(String assetPath) async {
+    final fontData = await rootBundle.load(assetPath);
+    return pw.Font.ttf(fontData);
+  }
+
+  Future<_PdfFonts> _loadPdfFonts() async {
+    final regular = await _loadFontAsset('assets/fonts/Tajawal-Regular.ttf');
+
+    pw.Font medium;
     try {
-      // Try Amiri font - a well-known Arabic font
-      final response = await html.HttpRequest.request(
-        'https://github.com/alif-type/amiri/raw/main/Amiri-Regular.ttf',
-        responseType: 'arraybuffer',
-      );
-      final byteBuffer = response.response as ByteBuffer;
-      final fontData = byteBuffer.asByteData();
-      return pw.Font.ttf(fontData);
-    } catch (e) {
-      debugPrint('Error loading Amiri font, trying alternative: $e');
-      try {
-        // Fallback to Tajawal font
-        final response = await html.HttpRequest.request(
-          'https://fonts.gstatic.com/s/tajawal/v9/Iurf6YBj_oCad4k1l_6gLrZjiLlJ-G0.ttf',
-          responseType: 'arraybuffer',
-        );
-        final byteBuffer = response.response as ByteBuffer;
-        final fontData = byteBuffer.asByteData();
-        return pw.Font.ttf(fontData);
-      } catch (e2) {
-        debugPrint('Error loading Tajawal font: $e2');
-        // Last resort fallback
-        return pw.Font.helvetica();
-      }
+      medium = await _loadFontAsset('assets/fonts/Tajawal-Medium.ttf');
+    } catch (_) {
+      medium = regular;
     }
+
+    pw.Font bold;
+    try {
+      bold = await _loadFontAsset('assets/fonts/Tajawal-Bold.ttf');
+    } catch (_) {
+      bold = medium;
+    }
+
+    return _PdfFonts(regular: regular, medium: medium, bold: bold);
   }
 
   @override
