@@ -887,15 +887,15 @@ class _MonthlyAttendanceSummaryScreenState
     required ValueChanged<int?> onChanged,
     bool includeAll = true,
   }) {
-    return SearchableLovField<int>(
+    return SearchableLovField<int?>(
       value: value,
       labelText: label,
       onChanged: onChanged,
       items: [
         if (includeAll)
-          const SearchableLovItem<int>(value: null, label: 'الكل'),
+          const SearchableLovItem<int?>(value: null, label: 'الكل'),
         ...items.map(
-          (item) => SearchableLovItem<int>(
+          (item) => SearchableLovItem<int?>(
             value: item['id'] as int?,
             label: (item[labelKey] ?? '').toString(),
           ),
