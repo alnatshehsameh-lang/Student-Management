@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:universal_html/html.dart' as html;
 import '../models/user_session.dart';
+import '../services/student_code_service.dart';
 import '../widgets/responsive_table_container.dart';
 import '../widgets/searchable_lov_field.dart';
 
@@ -538,41 +539,6 @@ class _StudentsScreenState extends State<StudentsScreen> {
 
   bool _isValidStudentCode(String code) {
     return RegExp(r'^[A-Za-z]+\d+$').hasMatch(code);
-  }
-
-  String? _buildNextStudentCode(List<dynamic> existingCodes) {
-    final pattern = RegExp(r'^([A-Za-z]+)(\d+)$');
-
-    String? bestPrefix;
-    int bestSequence = -1;
-    int bestWidth = 0;
-
-    for (final raw in existingCodes) {
-      final code = (raw ?? '').toString().trim();
-      if (code.isEmpty) continue;
-
-      final match = pattern.firstMatch(code);
-      if (match == null) continue;
-
-      final prefix = match.group(1)!;
-      final digits = match.group(2)!;
-      final sequence = int.tryParse(digits);
-      if (sequence == null) continue;
-
-      if (sequence > bestSequence) {
-        bestSequence = sequence;
-        bestPrefix = prefix;
-        bestWidth = digits.length;
-      }
-    }
-
-    if (bestPrefix == null) {
-      return null;
-    }
-
-    final nextSequence = bestSequence + 1;
-    final nextDigits = nextSequence.toString().padLeft(bestWidth, '0');
-    return '$bestPrefix$nextDigits';
   }
 
   Future<void> _exportFilteredStudentsCsv() async {
@@ -1705,23 +1671,17 @@ class _StudentsScreenState extends State<StudentsScreen> {
                       studentData['Type_id'] = targetTypeId;
                     }
 
-                    // Auto-generate Student_Code from existing values like A001 -> A002.
-                    // If no valid existing format is found, require user input.
-                    final existingCodesRes = await _client
-                        .from('Students')
-                        .select('Student_Code')
-                        .eq('Group_id', targetGroupId);
+                    // Group 14 numbers within the shared H6 series; other groups
+                    // keep their original per-group numbering. A null result
+                    // means no automatic code exists and manual entry applies.
+                    final automaticCode =
+                        await StudentCodeService.insertWithAutomaticCode(
+                          client: _client,
+                          studentData: studentData,
+                          groupId: targetGroupId,
+                        );
 
-                    final existingCodes = existingCodesRes is List
-                        ? existingCodesRes
-                              .map((r) => (r as Map<String, dynamic>)['Student_Code'])
-                              .toList()
-                        : <dynamic>[];
-
-                    final nextCode = _buildNextStudentCode(existingCodes);
-                    if (nextCode != null) {
-                      studentData['Student_Code'] = nextCode;
-                    } else {
+                    if (automaticCode == null) {
                       final manualCode = codeController.text.trim();
                       if (manualCode.isEmpty || !_isValidStudentCode(manualCode)) {
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -1734,9 +1694,8 @@ class _StudentsScreenState extends State<StudentsScreen> {
                         return;
                       }
                       studentData['Student_Code'] = manualCode;
+                      await _client.from('Students').insert(studentData);
                     }
-
-                    await _client.from('Students').insert(studentData);
 
                     if (mounted) {
                       Navigator.pop(context);
@@ -1745,10 +1704,16 @@ class _StudentsScreenState extends State<StudentsScreen> {
                       );
                       _fetchStudents();
                     }
-                  } catch (e) {
+                  } catch (e, stack) {
+                    debugPrint('Failed to add student: $e\n$stack');
                     if (mounted) {
+                      final message = e is StudentCodeGenerationException
+                          ? 'تعذر إنشاء كود الطالب تلقائياً، يرجى المحاولة مرة أخرى أو التواصل مع مسؤول النظام.'
+                          : StudentCodeService.isStudentCodeConflict(e)
+                          ? 'كود الطالب مستخدم مسبقاً، يرجى إدخال كود آخر.'
+                          : 'تعذر إضافة الطالب، يرجى المحاولة مرة أخرى أو التواصل مع مسؤول النظام.';
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('خطأ في إضافة الطالب: $e')),
+                        SnackBar(content: Text(message)),
                       );
                     }
                   }
